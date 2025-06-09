@@ -136,3 +136,4 @@ dist
 .pnp.*
 
 ./README.md
+./server-node-sdk/wallet

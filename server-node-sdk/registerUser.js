@@ -50,8 +50,6 @@ async function main() {
             }]
         }, adminIdentity);
 
-
-
         const enrollment = await ca.enroll({
             enrollmentID: 'user4',
             enrollmentSecret: secret,

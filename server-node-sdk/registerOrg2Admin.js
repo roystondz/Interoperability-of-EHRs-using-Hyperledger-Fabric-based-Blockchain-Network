@@ -7,10 +7,10 @@ const fs = require('fs');
 
 async function main(){
     try{
-        const ccpPath = path.resolve(__dirname,'..','fabric-samples','test-network','organizations','peerOrganizations','org1.example.com','connection-org1.json');
+        const ccpPath = path.resolve(__dirname,'..','fabric-samples','test-network','organizations','peerOrganizations','org2.example.com','connection-org2.json');
         const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
         
-        const caInfo = ccp.certificateAuthorities['ca.org1.example.com'];
+        const caInfo = ccp.certificateAuthorities['ca.org2.example.com'];
         const caTLSCACerts = caInfo.tlsCACerts.pem;
         const ca = new FabricCASerices(caInfo.url, { trustedRoots: [], verify: false }, caInfo.caName);
 
@@ -18,25 +18,25 @@ async function main(){
         const wallet = await Wallets.newFileSystemWallet(walletPath);
         console.log(`Wallet path: ${walletPath}`);
 
-        const adminExists = await wallet.get('admin');
+        const adminExists = await wallet.get('admin2');
         if (adminExists) {
-            console.log('An admin user "admin" already exists in the wallet');
+            console.log('An admin user "admin2" already exists in the wallet');
             return;
         }
 
-        const enrollment = await ca.enroll({ enrollmentID: 'admin', enrollmentSecret: 'adminpw' });
+        const enrollment = await ca.enroll({ enrollmentID: 'admin2', enrollmentSecret: 'adminpw2' });
         const identity = {
             credentials: {
                 certificate: enrollment.certificate,
                 privateKey: enrollment.key.toBytes(),
             },
-            mspId: 'Org1MSP',
+            mspId: 'Org2MSP',
             type: 'X.509',
         };
         await wallet.put('admin', identity);
-        console.log('Successfully registered admin user "admin" and imported it into the wallet');
+        console.log('Successfully registered admin user "admin2" and imported it into the wallet');
     }catch (error) {
-        console.error(`Failed to register admin user "admin": ${error}`);
+        console.error(`Failed to register admin user "admin2": ${error}`);
         process.exit(1);
     }
 }
