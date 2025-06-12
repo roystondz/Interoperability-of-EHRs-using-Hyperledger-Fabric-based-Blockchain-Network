@@ -12,15 +12,15 @@ async function main(){
         
         const caInfo = ccp.certificateAuthorities['ca.org1.example.com'];
         const caTLSCACerts = caInfo.tlsCACerts.pem;
-        const ca = new FabricCASerices(caInfo.url, { trustedRoots: [], verify: false }, caInfo.caName);
+        const ca = new FabricCASerices(caInfo.url, { trustedRoots: caTLSCACerts, verify: false }, caInfo.caName);
 
         const walletPath = path.join(process.cwd(), 'wallet');
         const wallet = await Wallets.newFileSystemWallet(walletPath);
         console.log(`Wallet path: ${walletPath}`);
 
-        const adminExists = await wallet.get('admin1');
+        const adminExists = await wallet.get('hospitalAdmin');
         if (adminExists) {
-            console.log('An admin user "admin1" already exists in the wallet');
+            console.log('An identity for the admin user "hospitalAdmin" already exists in the wallet');
             return;
         }
 
@@ -33,8 +33,8 @@ async function main(){
             mspId: 'Org1MSP',
             type: 'X.509',
         };
-        await wallet.put('admin1', identity);
-        console.log('Successfully registered admin user "admin1" and imported it into the wallet');
+        await wallet.put('hospitalAdmin', identity);
+        console.log('Successfully registered and enrolled admin user "hospitalAdmin" and imported it into the wallet');
     }catch (error) {
         console.error(`Failed to register admin user "admin1": ${error}`);
         process.exit(1);
