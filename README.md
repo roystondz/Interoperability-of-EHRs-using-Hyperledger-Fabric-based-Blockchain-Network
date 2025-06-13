@@ -1,12 +1,5 @@
 # Electronic Health Record Blockchain Based Platfrom - Project
 
-## Tech stack
-
-    - Hyperledger Fabric blockchain (Node SDK JavaScript)
-    - Node.js
-    - Next.js
-    - IPFS
-
 
 ## 🧩 Overview
 This project provides a decentralized solution for managing and sharing Electronic Health Records securely across different healthcare stakeholders such as hospitals, labs, pharmacies, researchers, patients, and insurance providers.
@@ -37,3 +30,12 @@ It leverages:
      [IPFS]
 
 ```
+
+### Steps to run the project
+
+#### 1.Install the Fabric Samples
+```bash
+chmod +x ./install.sh
+./install.sh
+```
+
