@@ -36,7 +36,7 @@ async function main(){
         await wallet.put('hospitalAdmin', identity);
         console.log('Successfully registered and enrolled admin user "hospitalAdmin" and imported it into the wallet');
     }catch (error) {
-        console.error(`Failed to register admin user "admin1": ${error}`);
+        console.error(`Failed to register admin user "hospitalAdmin": ${error}`);
         process.exit(1);
     }
 }

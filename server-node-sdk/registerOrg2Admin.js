@@ -40,10 +40,10 @@ async function main() {
         };
 
         await wallet.put('insuranceAdmin', identity);
-        console.log('✅ Successfully enrolled and imported admin user "insuranceAdmin" into the wallet');
+        console.log('Successfully enrolled and imported admin user "insuranceAdmin" into the wallet');
         
     } catch (error) {
-        console.error(`❌ Error: ${error}`);
+        console.error(`Failed to register admin user "insuranceAdmin": ${error}`);
         process.exit(1);
     }
 }
