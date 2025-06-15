@@ -30,8 +30,23 @@ It leverages:
      [IPFS]
 
 ```
+### 🚀 Prerequisites
+
+> Ensure the following are installed:
+
+| Software | Version | Command to Check |
+|----------|---------|------------------|
+| Docker & Docker Compose | ≥ 20.x | `docker -v`, `docker compose version` |
+| Node.js & npm | ≥ 16.x | `node -v`, `npm -v` |
+| Go | ≥ 1.20 | `go version` |
+| Git | Latest | `git --version` |
+| Hyperledger Fabric Binaries | 2.5.x | `peer version` |
+| jq (for shell scripts) | Latest | `jq --version` |
+
 
 ### Steps to run the project
+
+#### Start docker before running the project
 
 #### 1.Install the Fabric Samples
 ```bash
@@ -47,5 +62,25 @@ npm i
 #Repeat the process to register all the admins
 node registerOrg1Admin.js
 ```
+
+#### 3.Start the network
+```bash
+cd ./fabric-samples/test-network
+
+./network.sh up createChannel -ca -s couchdb
+```
+
+#### 4.Deploy the chaincode
+```bash
+./network.sh deployCC -ccn ehrChaincode -ccp ../asset-transfer-basic/chaincode-javascript/ -ccl javascript
+
+#ehrChaincode is the name of the CHAINCODE and the following path
+```
+
+#### To shut down the network
+```bash
+./network.sh down
+```
+
 
 
