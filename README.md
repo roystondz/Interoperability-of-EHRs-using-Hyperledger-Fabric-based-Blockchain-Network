@@ -42,7 +42,8 @@ chmod +x ./install.sh
 #### 2.Register the admins for the organisations
 ```bash
 cd ./server-node-sdk
-
+#install the node modules
+npm i
 #Repeat the process to register all the admins
 node registerOrg1Admin.js
 ```
