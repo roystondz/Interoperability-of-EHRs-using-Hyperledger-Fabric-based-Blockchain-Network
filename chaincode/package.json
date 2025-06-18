@@ -1,0 +1,16 @@
+{
+  "name": "chaincode",
+  "version": "1.0.0",
+  "description": "",
+  "main": "ehrChainCode.js",
+  "scripts": {
+    "start": "node ehrChainCode.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "fabric-contract-api": "^2.5.8"
+  }
+}

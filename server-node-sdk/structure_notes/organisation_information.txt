@@ -1,2 +1,5 @@
 organisation1 -> Hospital
 organisation2 -> Insurance
+
+
+-> many more organizations can be added as per the requirement

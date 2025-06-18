@@ -1,12 +1,6 @@
-/*
- * Copyright IBM Corp. All Rights Reserved.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 'use strict';
+//ignore the following line, it is used to import the chaincode
+const ehrChainCode = require('./lib/ehrChainCode');
 
-const assetTransfer = require('./lib/assetTransfer');
-
-module.exports.AssetTransfer = assetTransfer;
-module.exports.contracts = [assetTransfer];
+module.exports.ehrChainCode = ehrChainCode;
+module.exports.contracts = [ehrChainCode];

@@ -72,7 +72,7 @@ cd ./fabric-samples/test-network
 
 #### 4.Deploy the chaincode
 ```bash
-./network.sh deployCC -ccn ehrChaincode -ccp ../asset-transfer-basic/chaincode-javascript/ -ccl javascript
+./network.sh deployCC -ccn ehrChainCode -ccp ../asset-transfer-basic/chaincode-javascript/ -ccl javascript
 
 #ehrChaincode is the name of the CHAINCODE and the following path
 ```
@@ -80,6 +80,12 @@ cd ./fabric-samples/test-network
 #### To shut down the network
 ```bash
 ./network.sh down
+```
+
+
+#### Running via the chaincode folder
+```bash
+./network.sh deployCC -ccn ehrChainCode -ccp ../../chaincode -ccl javascript
 ```
 
 

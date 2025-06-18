@@ -82,7 +82,7 @@ class ehrChainCode extends Contract {
         }
         
         const insuranceJSON = await ctx.stub.getState(agentId);
-        if (insuranceJSON && insuranceJSON.length>0) {
+        if (insuranceJSON && insuranceJSON.length > 0) {
             throw new Error(`insurance ${agentId} already registerd by ${callerId}`);
         }
 
@@ -227,4 +227,4 @@ class ehrChainCode extends Contract {
 
 }
 
-module.exports = ehrChainCode;
+module.exports.contracts = ehrChainCode;

@@ -22,9 +22,9 @@ async function main() {
         console.log(`Wallet path: ${walletPath}`);
 
         // Check to see if we've already enrolled the user.
-        const userIdentity = await wallet.get('Doctor01-Rama');
+        const userIdentity = await wallet.get('Hospital01');
         if (userIdentity) {
-            console.log('An identity for the user "Doctor01-Rama" already exists in the wallet');
+            console.log('An identity for the user "Hospital01" already exists in the wallet');
             return;
         }
 
@@ -43,12 +43,12 @@ async function main() {
         // Register the user, enroll the user, and import the new identity into the wallet.
         const secret = await ca.register({
             affiliation: 'org1.department1',
-            enrollmentID: 'Doctor01-Rama',
+            enrollmentID: 'Hospital01',
             role: 'client',
-            attrs: [{ name: 'role', value: 'Doctor', ecert: true },{ name: 'uuid', value: 'Doctor01-Rama', ecert: true }],
+            attrs: [{ name: 'role', value: 'hospital', ecert: true },{ name: 'uuid', value: 'Hospital01', ecert: true }],
         }, adminUser);
         const enrollment = await ca.enroll({
-            enrollmentID: 'Doctor01-Rama',
+            enrollmentID: 'Hospital01',
             enrollmentSecret: secret,
             attr_reqs: [{ name: "role", optional: false },{ name: "uuid", optional: false }]
         });
@@ -60,36 +60,10 @@ async function main() {
             mspId: 'Org1MSP',
             type: 'X.509',
         };
-        await wallet.put('Doctor01-Rama', x509Identity);
-        console.log('Successfully registered and enrolled hospitalAdmin user "Doctor01-Rama" and imported it into the wallet');
-
-        // -----------------------Create Wallet with default balance on ledger------------------ 
-                // Create a new gateway for connecting to our peer node.
-                const gateway = new Gateway();
-                await gateway.connect(ccp, { wallet, identity: 'Hospital01', discovery: { enabled: true, asLocalhost: true } });
-        
-                // Get the network (channel) our contract is deployed to.
-                const network = await gateway.getNetwork('mychannel');
-        
-                // Get the contract from the network.
-                const contract = network.getContract("ehrChainCode");
-
-                let doctorId="Doctor01-Rama";
-                let hospitalName="Hospital01-ABC";
-                let name="Rama";
-                let city="Pune";
-
-                const res = await contract.submitTransaction('onboardDoctor', doctorId, hospitalName, name, city);
-                console.log("/n === Onboard Doctor success === /n", res.toString());
-        
-                const result2 = await contract.evaluateTransaction('GetAllAssets');
-                console.log('/n === GetAllAssets === /n', result2.toString());
-
-                // Disconnect from the gateway.
-                gateway.disconnect();
-
+        await wallet.put('Hospital01', x509Identity);
+        console.log('Successfully registered and enrolled hospitalAdmin user "Hospital01" and imported it into the wallet');
     } catch (error) {
-        console.error(`Failed to register user "Doctor01-Rama": ${error}`);
+        console.error(`Failed to register user "Hospital01": ${error}`);
         process.exit(1);
       }
 }
