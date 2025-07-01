@@ -1,3 +1,9 @@
+/*
+ * Copyright IBM Corp. All Rights Reserved.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 'use strict';
 
 const {Gateway, Wallets } = require('fabric-network');
@@ -8,7 +14,7 @@ const path = require('path');
 async function main() {
     try {
         // load the network configuration
-        const ccpPath = path.resolve(__dirname, '..', 'fabric-samples', 'test-network', 'organizations', 'peerOrganizations', 'org2.example.com', 'connection-org2.json');
+        const ccpPath = path.resolve(__dirname, '../..', 'fabric-samples', 'test-network', 'organizations', 'peerOrganizations', 'org2.example.com', 'connection-org2.json');
         // const ccpPath = path.resolve(__dirname, '..', '..','HLF-Alpha_token-Faucet', 'test-network', 'organizations', 'peerOrganizations', 'org2.example.com', 'connection-org2.json');
         const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
 
@@ -22,9 +28,9 @@ async function main() {
         console.log(`Wallet path: ${walletPath}`);
 
         // Check to see if we've already enrolled the user.
-        const userIdentity = await wallet.get('insuranceAgent01-Rama');
+        const userIdentity = await wallet.get('insuranceAgent-Rama');
         if (userIdentity) {
-            console.log('An identity for the user "insuranceAgent01-Rama" already exists in the wallet');
+            console.log('An identity for the user "insuranceAgent-Rama" already exists in the wallet');
             return;
         }
 
@@ -43,12 +49,12 @@ async function main() {
         // Register the user, enroll the user, and import the new identity into the wallet.
         const secret = await ca.register({
             affiliation: 'org2.department1',
-            enrollmentID: 'insuranceAgent01-Rama',
+            enrollmentID: 'insuranceAgent-Rama',
             role: 'client',
-            attrs: [{ name: 'role', value: 'insuranceAdmin', ecert: true },{ name: 'uuid', value: 'insuranceAgent01-Rama', ecert: true }],
+            attrs: [{ name: 'role', value: 'agent', ecert: true },{ name: 'uuid', value: 'insuranceAgent-Rama', ecert: true }],
         }, adminUser);
         const enrollment = await ca.enroll({
-            enrollmentID: 'insuranceAgent01-Rama',
+            enrollmentID: 'insuranceAgent-Rama',
             enrollmentSecret: secret,
             attr_reqs: [{ name: "role", optional: false },{ name: "uuid", optional: false }]
         });
@@ -60,8 +66,8 @@ async function main() {
             mspId: 'Org2MSP',
             type: 'X.509',
         };
-        await wallet.put('insuranceAgent01-Rama', x509Identity);
-        console.log('Successfully registered and enrolled insuranceAdmin user "insuranceAgent01-Rama" and imported it into the wallet');
+        await wallet.put('insuranceAgent-Rama', x509Identity);
+        console.log('Successfully registered and enrolled insuranceAdmin user "insuranceAgent-Rama" and imported it into the wallet');
 
         // -----------------------Create Wallet with default balance on ledger------------------ 
                 // Create a new gateway for connecting to our peer node.
@@ -72,24 +78,26 @@ async function main() {
                 const network = await gateway.getNetwork('mychannel');
         
                 // Get the contract from the network.
-                const contract = network.getContract("ehrChainCode");
+                const contract = network.getContract('ehrChainCode');
 
-                let agentId="insuranceAgent01-Rama";
-                let insuranceCompany="insuranceCompany01-ABC";
-                let name="Rama";
-                let city="Bangalore";
+                const args = {
+                    agentId:"insuranceAgent01",
+                    insuranceCompany:"insuranceCompany01-XYZ",
+                    name:"Rama",
+                    city:"Amravati"
+                }
 
-                const res = await contract.submitTransaction('onboardInsurance', agentId, insuranceCompany, name, city);
+                const res = await contract.submitTransaction('onboardInsurance', JSON.stringify(args));
                 console.log("/n === Onboard Agent success === /n", res.toString());
         
-                const result2 = await contract.evaluateTransaction('GetAllAssets');
-                console.log('/n === GetAllAssets === /n', result2.toString());
+                // const result2 = await contract.evaluateTransaction('GetAllAssets');
+                // console.log('/n === GetAllAssets === /n', result2.toString());
 
                 // Disconnect from the gateway.
                 gateway.disconnect();
 
     } catch (error) {
-        console.error(`Failed to register user "insuranceAgent01-Rama": ${error}`);
+        console.error(`Failed to register user "insuranceAgent-Rama": ${error}`);
         process.exit(1);
       }
 }
