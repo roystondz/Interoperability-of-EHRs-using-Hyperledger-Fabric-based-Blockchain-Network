@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(cors());
 
 app.listen(5000, function () {
-    console.log('Node SDK server is running on 5000 port :) ');
+    console.log('Node SDK server is running on 5000 port');
 });
 
 app.get('/status', async function (req, res, next) {

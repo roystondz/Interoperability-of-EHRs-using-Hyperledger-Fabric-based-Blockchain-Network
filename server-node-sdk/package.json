@@ -11,6 +11,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "fabric-ca-client": "^2.2.20",
     "fabric-network": "^2.2.20"
   }

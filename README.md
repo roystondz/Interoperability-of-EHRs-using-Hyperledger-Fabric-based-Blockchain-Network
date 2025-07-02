@@ -82,12 +82,30 @@ cd ./fabric-samples/test-network
 ./network.sh down
 ```
 
+##### Register Org Admins
+```bash
+$ cd server-node-sdk/
+$ node cert-script/registerOrg1Admin.js
+$ node cert-script/registerOrg2Admin.js
+```
+
+##### Onboard Scripts
+```bash
+$ node cert-scripts/onboardHospital01.js
+$ node cert-scripts/onboardDoctor.js
+
+$ node cert-scripts/onboardInsuranceCompany.js
+$ node cert-scripts/onboardInsuranceAgent.js
+```
+
 - Not preferred (only for backup)
 #### Running via the chaincode folder
 ```bash
 ./network.sh deployCC -ccn ehrChainCode -ccp ../../chaincode -ccl javascript
 ```
 
+- Read Operations are made through query 
+- Write Operations are made through query
 
 
 
