@@ -85,8 +85,8 @@ cd ./fabric-samples/test-network
 ##### Register Org Admins
 ```bash
 $ cd server-node-sdk/
-$ node cert-script/registerOrg1Admin.js
-$ node cert-script/registerOrg2Admin.js
+$ node cert-scripts/registerOrg1Admin.js
+$ node cert-scripts/registerOrg2Admin.js
 ```
 
 ##### Onboard Scripts
