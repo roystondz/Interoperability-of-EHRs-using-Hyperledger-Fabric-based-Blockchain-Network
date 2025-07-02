@@ -10,8 +10,8 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.listen(5000, function () {
-    console.log('Node SDK server is running on 5000 port');
+app.listen(3000, function () {
+    console.log('Node SDK server is running on 3000 port');
 });
 
 app.get('/status', async function (req, res, next) {
