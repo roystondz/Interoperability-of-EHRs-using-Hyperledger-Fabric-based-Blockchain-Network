@@ -82,7 +82,7 @@ cd ./fabric-samples/test-network
 ./network.sh down
 ```
 
-
+- Not preferred (only for backup)
 #### Running via the chaincode folder
 ```bash
 ./network.sh deployCC -ccn ehrChainCode -ccp ../../chaincode -ccl javascript
