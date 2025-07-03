@@ -81,7 +81,7 @@ cd ./fabric-samples/test-network
 ```bash
 ./network.sh down
 ```
-
+- Run the commands as specified,
 ##### Register Org Admins
 ```bash
 $ cd server-node-sdk/
