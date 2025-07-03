@@ -97,6 +97,11 @@ $ node cert-scripts/onboardDoctor.js
 $ node cert-scripts/onboardInsuranceCompany.js
 $ node cert-scripts/onboardInsuranceAgent.js
 ```
+#### Run the backend
+```bash
+$ node app.js
+```
+# Additional Information
 
 - Not preferred (only for backup)
 #### Running via the chaincode folder
@@ -104,8 +109,8 @@ $ node cert-scripts/onboardInsuranceAgent.js
 ./network.sh deployCC -ccn ehrChainCode -ccp ../../chaincode -ccl javascript
 ```
 
-- Read Operations are made through query 
-- Write Operations are made through query
+- Read Operations are made through query.js
+- Write Operations are made through invoke.js
 
 
 
