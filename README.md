@@ -1,6 +1,5 @@
 # Electronic Health Record Blockchain Based Platfrom - Project
 
-
 ## 🧩 Overview
 This project provides a decentralized solution for managing and sharing Electronic Health Records securely across different healthcare stakeholders such as hospitals, labs, pharmacies, researchers, patients, and insurance providers.
 
@@ -59,8 +58,6 @@ chmod +x ./install.sh
 cd ./server-node-sdk
 #install the node modules
 npm i
-#Repeat the process to register all the admins
-node registerOrg1Admin.js
 ```
 
 #### 3.Start the network
@@ -82,14 +79,14 @@ cd ./fabric-samples/test-network
 ./network.sh down
 ```
 - Run the commands as specified,
-##### Register Org Admins
+##### 5.Register Org Admins
 ```bash
 $ cd server-node-sdk/
 $ node cert-scripts/registerOrg1Admin.js
 $ node cert-scripts/registerOrg2Admin.js
 ```
 
-##### Onboard Scripts
+##### 6.Onboard Scripts
 ```bash
 $ node cert-scripts/onboardHospital01.js
 $ node cert-scripts/onboardDoctor.js
@@ -97,7 +94,7 @@ $ node cert-scripts/onboardDoctor.js
 $ node cert-scripts/onboardInsuranceCompany.js
 $ node cert-scripts/onboardInsuranceAgent.js
 ```
-#### Run the backend
+#### 7.Run the backend
 ```bash
 $ node app.js
 ```
@@ -111,6 +108,3 @@ $ node app.js
 
 - Read Operations are made through query.js
 - Write Operations are made through invoke.js
-
-
-
