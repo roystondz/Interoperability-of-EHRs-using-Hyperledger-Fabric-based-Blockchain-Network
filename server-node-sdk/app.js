@@ -162,6 +162,56 @@ app.post('/fetchLedger', async function (req, res, next){
         next(error);
     }
 });
+//new
+app.post('/updatePatientProfile', async (req, res, next) => {
+    try {
+        const { userId, name, dob, city } = req.body;
+        const result = await invoke.invokeTransaction('updatePatientProfile', { name, dob, city }, userId);
+        res.status(200).send({ success: true, data: result });
+    } catch (err) {
+        next(err);
+    }
+});
+
+app.post('/revokeAccess', async (req, res, next) => {
+    try {
+        const { userId, patientId, doctorId } = req.body;
+        const result = await invoke.invokeTransaction('revokeAccess', { patientId, doctorId }, userId);
+        res.status(200).send({ success: true, data: result });
+    } catch (err) {
+        next(err);
+    }
+});
+
+app.post('/getAccessList', async (req, res, next) => {
+    try {
+        const { userId, patientId } = req.body;
+        const result = await query.getQuery('getAccessList', { patientId }, userId);
+        res.status(200).send({ success: true, data: result });
+    } catch (err) {
+        next(err);
+    }
+});
+
+app.post('/getPatientsForDoctor', async (req, res, next) => {
+    try {
+        const { userId } = req.body;
+        const result = await query.getQuery('getPatientsForDoctor', {}, userId);
+        res.status(200).send({ success: true, data: result });
+    } catch (err) {
+        next(err);
+    }
+});
+
+app.get('/getSystemStats', async (req, res, next) => {
+    try {
+        const userId = req.query.userId;
+        const result = await query.getQuery('getSystemStats', {}, userId);
+        res.status(200).send({ success: true, data: result });
+    } catch (err) {
+        next(err);
+    }
+});
 
 
 app.use((err, req, res, next) => {

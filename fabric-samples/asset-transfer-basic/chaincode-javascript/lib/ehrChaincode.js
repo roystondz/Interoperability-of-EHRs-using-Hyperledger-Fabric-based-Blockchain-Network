@@ -405,6 +405,65 @@ class ehrChainCode extends Contract {
         return results;
     }
 
+    async updatePatientProfile(ctx, name, dob, city) {
+        const userId = ctx.clientIdentity.getID();
+        const userKey = ctx.stub.createCompositeKey('patient', [userId]);
+        const data = await ctx.stub.getState(userKey);
+        if (!data || data.length === 0) {
+            throw new Error('Patient does not exist');
+        }
+        const patient = JSON.parse(data.toString());
+        if (name) patient.name = name;
+        if (dob) patient.dob = dob;
+        if (city) patient.city = city;
+    
+        await ctx.stub.putState(userKey, Buffer.from(JSON.stringify(patient)));
+        return JSON.stringify({ message: "Profile updated successfully" });
+    }
+
+    async revokeAccess(ctx, patientId, doctorId) {
+        const accessKey = ctx.stub.createCompositeKey('access', [patientId, doctorId]);
+        await ctx.stub.deleteState(accessKey);
+        return JSON.stringify({ message: "Access revoked" });
+    }
+
+    async getAccessList(ctx, patientId) {
+        const iterator = await ctx.stub.getStateByPartialCompositeKey('access', [patientId]);
+        const result = [];
+        for await (const res of iterator) {
+            const keyParts = ctx.stub.splitCompositeKey(res.key);
+            result.push(keyParts.attributes[1]); // doctorId
+        }
+        return JSON.stringify(result);
+    }
+    
+    async getPatientsForDoctor(ctx) {
+        const doctorId = ctx.clientIdentity.getID();
+        const iterator = await ctx.stub.getStateByPartialCompositeKey('access', []);
+        const patients = [];
+    
+        for await (const res of iterator) {
+            const keyParts = ctx.stub.splitCompositeKey(res.key);
+            const [patientId, docId] = keyParts.attributes;
+            if (docId === doctorId) {
+                patients.push(patientId);
+            }
+        }
+        return JSON.stringify(patients);
+    }
+
+    async getSystemStats(ctx) {
+        let patientCount = 0;
+        let doctorCount = 0;
+        const patientIterator = await ctx.stub.getStateByPartialCompositeKey('patient', []);
+        const doctorIterator = await ctx.stub.getStateByPartialCompositeKey('doctor', []);
+    
+        for await (const _ of patientIterator) patientCount++;
+        for await (const _ of doctorIterator) doctorCount++;
+    
+        return JSON.stringify({ patientCount, doctorCount });
+    }
+    
 
     // get patient details by id
 
