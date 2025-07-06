@@ -99,7 +99,8 @@ $ node cert-scripts/onboardInsuranceAgent.js
 $ node app.js
 ```
 # Additional Information
-- API Enpoints
+API Enpoints
+
 | **Method** | **Endpoint**                | **Description**                          | **Role**         | **Parameters (Body / Query)**                          |
 | ---------- | --------------------------- | ---------------------------------------- | ---------------- | ------------------------------------------------------ |
 | `GET`      | `/status`                   | Check server status                      | Public           | –                                                      |
