@@ -268,17 +268,36 @@ class ehrChainCode extends Contract {
         return JSON.stringify({message: `Record ${recordId} added for patient ${patientId}`});
     }
 
+    // async getAllRecordsByPatientId(ctx, args) {
+    //     const {patientId} = JSON.parse(args);
+    //     const iterator = await ctx.stub.getStateByPartialCompositeKey('record', [patientId]);
+    //     const results = [];
+
+    //     for await (const res of iterator) {
+    //         results.push(JSON.parse(res.value.toString('utf8')));
+    //     }
+
+    //     return JSON.stringify(results);
+    // }
+
     async getAllRecordsByPatientId(ctx, args) {
-        const {patientId} = JSON.parse(args);
+        const { patientId } = JSON.parse(args);
         const iterator = await ctx.stub.getStateByPartialCompositeKey('record', [patientId]);
         const results = [];
-
-        for await (const res of iterator) {
-            results.push(JSON.parse(res.value.toString('utf8')));
+    
+        let res = await iterator.next();
+        while (!res.done) {
+            if (res.value && res.value.value.toString()) {
+                const record = JSON.parse(res.value.value.toString('utf8'));
+                results.push(record);
+            }
+            res = await iterator.next();
         }
-
+        await iterator.close();
+    
         return JSON.stringify(results);
     }
+    
 
     async getRecordById(ctx, args) {
         const {patientId, recordId} = JSON.parse(args);
