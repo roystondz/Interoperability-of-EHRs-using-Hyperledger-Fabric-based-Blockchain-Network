@@ -99,6 +99,23 @@ $ node cert-scripts/onboardInsuranceAgent.js
 $ node app.js
 ```
 # Additional Information
+- API Enpoints
+| Method | Endpoint                    | Description                                    | Roles          | Body Parameters / Query                                |
+| ------ | --------------------------- | ---------------------------------------------- | -------------- | ------------------------------------------------------ |
+| GET    | `/status`                   | Check server status                            | Public         | –                                                      |
+| POST   | `/registerPatient`          | Register a new patient                         | Admin          | `adminId`, `userId`, `doctorId`, `name`, `dob`, `city` |
+| POST   | `/loginPatient`             | Patient login                                  | Patient        | `userId`                                               |
+| POST   | `/addRecord`                | Add new medical record                         | Doctor         | `userId`, `patientId`, `diagnosis`, `prescription`     |
+| POST   | `/getAllRecordsByPatientId` | Get all records for a patient                  | Doctor/Patient | `userId`, `patientId`                                  |
+| POST   | `/getRecordById`            | Get a specific record by ID                    | Doctor/Patient | `userId`, `patientId`, `recordId`                      |
+| POST   | `/queryHistoryOfAsset`      | Get history of a specific record               | Doctor/Patient | `userId`, `recordId`                                   |
+| POST   | `/grantAccess`              | Grant doctor access to patient records         | Patient        | `userId`, `patientId`, `doctorIdToGrant`               |
+| POST   | `/revokeAccess`             | Revoke a doctor's access                       | Patient        | `userId`, `patientId`, `doctorId`                      |
+| POST   | `/getAccessList`            | List all doctors with access to a patient      | Patient        | `userId`, `patientId`                                  |
+| POST   | `/getPatientsForDoctor`     | List all patients assigned to a doctor         | Doctor         | `userId`                                               |
+| POST   | `/updatePatientProfile`     | Update patient details                         | Patient        | `userId`, `name`, `dob`, `city`                        |
+| POST   | `/fetchLedger`              | Fetch entire ledger view                       | Admin          | `userId`                                               |
+| GET    | `/getSystemStats`           | Get overall stats (e.g., patient/doctor count) | Admin          | `userId` (as query param)                              |
 
 - Not preferred (only for backup)
 #### Running via the chaincode folder
