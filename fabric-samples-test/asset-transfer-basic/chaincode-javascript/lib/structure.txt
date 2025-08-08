@@ -1,0 +1,16 @@
+data if patient is present
+{
+    "patientId":"P001",
+    "name":"John Doe",
+    "dob":"2000-01-01",
+    "records":[
+        {
+            "recordId":"R001",
+            "doctorId":"D001",
+            "diagnosis":"Flu",
+            "prescription":"Rest and Dehydration",
+            "timestamp":"2012-01-10T10:01:00Z"
+        }
+        ],
+    "authorizedDoctors":["D001"]
+}

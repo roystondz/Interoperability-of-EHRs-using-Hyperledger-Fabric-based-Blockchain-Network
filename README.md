@@ -125,5 +125,13 @@ API Enpoints
 ./network.sh deployCC -ccn ehrChainCode -ccp ../../chaincode -ccl javascript
 ```
 
+
+
+#### Incase of Error : Cannot detect command
+- Run in terminal
+```bash
+CORE_CHAINCODE_BUILDER=hyperledger/fabric-nodeenv:2.5
+```
+
 - Read Operations are made through query.js
 - Write Operations are made through invoke.js
