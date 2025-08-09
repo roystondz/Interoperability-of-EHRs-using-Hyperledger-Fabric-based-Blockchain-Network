@@ -48,9 +48,10 @@ It leverages:
 #### Start docker before running the project
 
 #### 1.Install the Fabric Samples
+- Run this command in BASH Terminal
 ```bash
 chmod +x ./install.sh
-./install.sh
+./install.sh  
 ```
 
 #### 2.Register the admins for the organisations
@@ -61,6 +62,18 @@ npm i
 ```
 
 #### 3.Start the network
+##### Windows
+```bash
+cd ./fabric-samples/test-network 
+
+
+./network.sh up -ca -s couchdb
+./network.sh createChannel
+
+```
+
+
+##### MacOS
 ```bash
 cd ./fabric-samples/test-network
 
