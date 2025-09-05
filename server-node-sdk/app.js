@@ -28,7 +28,6 @@ app.post('/registerPatient', async function (req, res, next) {
         console.log("Received request:", req.body);
         if (req.body.userId && req.body.adminId) {
             userId = req.body.userId;
-            
             adminId = req.body.adminId;
         } else {
             console.log("Missing input data. Please enter all the user details.");
@@ -165,13 +164,21 @@ app.post('/fetchLedger', async function (req, res, next){
 //new
 app.post('/updatePatientProfile', async (req, res, next) => {
     try {
-        const { userId, name, dob, city } = req.body;
-        const result = await invoke.invokeTransaction('updatePatientProfile', { name, dob, city }, userId);
+        const { name, dob, city } = req.body;
+
+        // Create an object with the arguments
+        const args = { name, dob, city };
+
+        // Call chaincode; invokeTransaction will stringify internally
+        const result = await invoke.invokeTransaction('updatePatientProfile', args, req.body.userId);
+
         res.status(200).send({ success: true, data: result });
     } catch (err) {
         next(err);
     }
 });
+
+
 
 app.post('/revokeAccess', async (req, res, next) => {
     try {
@@ -205,7 +212,7 @@ app.post('/getPatientsForDoctor', async (req, res, next) => {
 
 app.get('/getSystemStats', async (req, res, next) => {
     try {
-        const userId = req.query.userId;
+        const {userId} = req.body;
         const result = await query.getQuery('getSystemStats', {}, userId);
         res.status(200).send({ success: true, data: result });
     } catch (err) {
