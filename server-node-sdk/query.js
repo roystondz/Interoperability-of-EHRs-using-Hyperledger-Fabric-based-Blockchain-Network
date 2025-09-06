@@ -13,7 +13,7 @@ const fs = require('fs');
 
 const getQuery = async (fcn, args, userId) => {
     console.log("User id : ",userId)
-    const orgID = 'Org1';
+    const orgID = 'org1';
     const channelName = 'mychannel';
     const chaincodeName = 'ehrChainCode';
 

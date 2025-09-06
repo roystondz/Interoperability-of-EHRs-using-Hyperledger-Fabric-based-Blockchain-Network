@@ -12,8 +12,6 @@ const sortKeysRecursive  = require('sort-keys-recursive');
 const { Contract } = require('fabric-contract-api');
 
 class ehrChainCode extends Contract {
-
-
     //   1. Goverment - network owner - admin access
     //     2. Hospital - Network orgination - Read/Write (doctor data)
     //     3. Practicing physician/Doctor - Read/Write (Patient data w.r.t to hospital)
@@ -48,26 +46,24 @@ class ehrChainCode extends Contract {
          return `record-${txId}`; 
     }
 
-    // onboard doctor in ledger by hospital 
+    // onboard doctor in ledger by hospital
     async onboardDoctor(ctx, args) {
-        
-        const {doctorId, hospitalName, name, city } = JSON.parse(args);
-        console.log("ARGS-RAW:",args)
-        console.log("ARGS:",doctorId, hospitalName, name, city)
+        const {doctorId, hospitalName, name, city,department } = JSON.parse(args);
         const { role, uuid: callerId } = this.getCallerAttributes(ctx);
         const orgMSP = ctx.clientIdentity.getMSPID();
-
+        const key = `Doctor-${doctorId}`;
+        
+    
         if (orgMSP !== 'Org1MSP' || role !== 'hospital') {
-            throw new Error('Only hospital can onboard doc tor.');
+            throw new Error('Only hospital can onboard doctor.');
         }
-
+    
         const doctorJSON = await ctx.stub.getState(doctorId);
         if (doctorJSON && doctorJSON.length > 0) {
-            throw new Error(`Doctor ${doctorId} already registerd by ${callerId}`);
+            throw new Error(`Doctor ${doctorId} already registered by ${callerId}`);
         }
-
+    
         const recordId = this.recordIdGenerator(ctx);
-        console.log("Record ID", recordId);
         
         const record = {
             recordId,
@@ -75,14 +71,62 @@ class ehrChainCode extends Contract {
             hospitalId: callerId,
             name,
             hospitalName,
+            department,
             city,
-           timestamp: ctx.stub.getTxTimestamp().seconds.low.toString()
+            timestamp: ctx.stub.getTxTimestamp().seconds.low.toString()
         };
-
-        const result = await ctx.stub.putState(doctorId, Buffer.from(stringify(record)));
-        console.log('ONBOARD DOCTOR RESULT:',stringify(result))
-        return stringify(record);
+    
+        await ctx.stub.putState(key, Buffer.from(JSON.stringify(record)));
+        return JSON.stringify(record);
     }
+     
+
+    async onboardHospital(ctx, args) {
+        const { hospitalId, name, city, departments } = JSON.parse(args);
+        const hospitalJSON = await ctx.stub.getState(hospitalId);
+        if (hospitalJSON && hospitalJSON.length > 0) {
+            throw new Error(`Hospital ${hospitalId} already exists`);
+        }
+    
+        const hospital = { hospitalId, name, city, departments, timestamp: ctx.stub.getTxTimestamp().seconds.low.toString() };
+        await ctx.stub.putState(hospitalId, Buffer.from(JSON.stringify(hospital)));
+        return JSON.stringify(hospital);
+    }
+    
+    // async onboardDoctor(ctx, args) {
+        
+    //     const {doctorId, hospitalName, name, city } = JSON.parse(args);
+    //     console.log("ARGS-RAW:",args)
+    //     console.log("ARGS:",doctorId, hospitalName, name, city)
+    //     const { role, uuid: callerId } = this.getCallerAttributes(ctx);
+    //     const orgMSP = ctx.clientIdentity.getMSPID();
+
+    //     if (orgMSP !== 'Org1MSP' || role !== 'hospital') {
+    //         throw new Error('Only hospital can onboard doc tor.');
+    //     }
+
+    //     const doctorJSON = await ctx.stub.getState(doctorId);
+    //     if (doctorJSON && doctorJSON.length > 0) {
+    //         throw new Error(`Doctor ${doctorId} already registerd by ${callerId}`);
+    //     }
+
+    //     const recordId = this.recordIdGenerator(ctx);
+    //     console.log("Record ID", recordId);
+        
+    //     const record = {
+    //         recordId,
+    //         doctorId,
+    //         hospitalId: callerId,
+    //         name,
+    //         hospitalName,
+    //         city,
+    //        timestamp: ctx.stub.getTxTimestamp().seconds.low.toString()
+    //     };
+
+    //     const result = await ctx.stub.putState(doctorId, Buffer.from(stringify(record)));
+    //     console.log('ONBOARD DOCTOR RESULT:',stringify(result))
+    //     return stringify(record);
+    // }
 
       // onboard insurance agent by insurance company  
     async onboardInsurance(ctx, args){
@@ -197,32 +241,32 @@ class ehrChainCode extends Contract {
     //     return `Record ${recordId} added by doctor ${callerId}`;
     // }
 
-    async onboardPatient(ctx, args) {
+    // async onboardPatient(ctx, args) {
         
-        const {patientId, name, dob, city} = JSON.parse(args);
+    //     const {patientId, name, dob, city} = JSON.parse(args);
 
-        console.log("ARGS-RWA", args)
-        console.log("ARGS-split 4", patientId, name, dob, city)
+    //     console.log("ARGS-RWA", args)
+    //     console.log("ARGS-split 4", patientId, name, dob, city)
 
 
-        const key = `patient-${patientId}`;
+    //     const key = `patient-${patientId}`;
 
-        const existing = await ctx.stub.getState(key);
-        if (existing && existing.length > 0) {
-            throw new Error(`Patient ${patientId} already exists`);
-        }
+    //     const existing = await ctx.stub.getState(key);
+    //     if (existing && existing.length > 0) {
+    //         throw new Error(`Patient ${patientId} already exists`);
+    //     }
 
-        const patient = {
-            patientId,
-            name,
-            dob,
-            city,
-            authorizedDoctors: []
-        };
+    //     const patient = {
+    //         patientId,
+    //         name,
+    //         dob,
+    //         city,
+    //         authorizedDoctors: []
+    //     };
 
-        await ctx.stub.putState(key, Buffer.from(JSON.stringify(patient)));
-        return `Patient ${patientId} registered`;
-    }
+    //     await ctx.stub.putState(key, Buffer.from(JSON.stringify(patient)));
+    //     return `Patient ${patientId} registered`;
+    // }
 
     async addRecord(ctx, args) {
 
@@ -235,7 +279,7 @@ class ehrChainCode extends Contract {
             throw new Error('Only doctors can add records');
         }
 
-        const patientJSON = await ctx.stub.getState(`patient-${patientId}`);
+        const patientJSON = await ctx.stub.getState(`Patient-${patientId}`);
         if (!patientJSON || patientJSON.length === 0) {
             throw new Error(`Patient ${patientId} not found`);
         }
@@ -268,17 +312,27 @@ class ehrChainCode extends Contract {
         return JSON.stringify({message: `Record ${recordId} added for patient ${patientId}`});
     }
 
-    // async getAllRecordsByPatientId(ctx, args) {
-    //     const {patientId} = JSON.parse(args);
-    //     const iterator = await ctx.stub.getStateByPartialCompositeKey('record', [patientId]);
-    //     const results = [];
-
-    //     for await (const res of iterator) {
-    //         results.push(JSON.parse(res.value.toString('utf8')));
-    //     }
-
-    //     return JSON.stringify(results);
-    // }
+    async onboardPatient(ctx, args) {
+        const {patientId, name, dob, city} = JSON.parse(args);
+        const key = `Patient-${patientId}`;
+    
+        const existing = await ctx.stub.getState(key);
+        if (existing && existing.length > 0) {
+            throw new Error(`Patient ${patientId} already exists`);
+        }
+    
+        const patient = {
+            patientId,
+            name,
+            dob,
+            city,
+            authorizedDoctors: []
+        };
+    
+        await ctx.stub.putState(key, Buffer.from(JSON.stringify(patient)));
+        return `Patient ${patientId} registered`;
+    }
+    
 
     async getAllRecordsByPatientId(ctx, args) {
         const { patientId } = JSON.parse(args);
@@ -314,13 +368,13 @@ class ehrChainCode extends Contract {
     // 
     
     async grantAccess(ctx, args) {
-        const { patientId, doctorIdToGrant } = JSON.parse(args);
+        const { patientId, doctorIdToGrant, hospitalId } = JSON.parse(args);
         const { role, uuid: callerId } = this.getCallerAttributes(ctx);
     
         if (role !== 'patient') throw new Error('Only patients can grant access');
         if (callerId !== patientId) throw new Error('Caller is not the owner of this patient record');
     
-        const key = `patient-${patientId}`;
+        const key = `Patient-${patientId}`;
         const patientJSON = await ctx.stub.getState(key);
         if (!patientJSON || patientJSON.length === 0) throw new Error(`Patient ${patientId} not found`);
     
@@ -330,13 +384,20 @@ class ehrChainCode extends Contract {
             patient.authorizedDoctors.push(doctorIdToGrant);
             await ctx.stub.putState(key, Buffer.from(JSON.stringify(patient)));
     
-            // ✅ Add the access composite key
-            const accessKey = ctx.stub.createCompositeKey('access', [patientId, doctorIdToGrant]);
-            await ctx.stub.putState(accessKey, Buffer.from('authorized'));
+            // ✅ Store metadata in the access composite key
+            const accessKey = ctx.stub.createCompositeKey('access', [patientId, doctorIdToGrant,]);
+            const accessData = {
+                doctorId: doctorIdToGrant,
+                hospitalId,
+                grantedAt: new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString()
+            };
+            await ctx.stub.putState(accessKey, Buffer.from(JSON.stringify(accessData)));
         }
     
         return JSON.stringify({ message: `Doctor ${doctorIdToGrant} authorized` });
     }
+    
+    
     
 
     // GetAllAssets returns all assets found in the world state.
@@ -406,7 +467,7 @@ class ehrChainCode extends Contract {
         const { name, dob, city } = JSON.parse(args); 
     
         const patientId = ctx.clientIdentity.getAttributeValue('uuid'); 
-        const userKey = `patient-${patientId}`;
+        const userKey = `Patient-${patientId}`;
     
         const data = await ctx.stub.getState(userKey);
         if (!data || data.length === 0) {
@@ -430,20 +491,28 @@ class ehrChainCode extends Contract {
         return JSON.stringify({ message: "Access revoked" });
     }
 
-    async getAccessList(ctx, patientId) {
+    async getAccessList(ctx, args) {
+        const { patientId } = JSON.parse(args);
         const iterator = await ctx.stub.getStateByPartialCompositeKey('access', [patientId]);
         const result = [];
     
         let res = await iterator.next();
         while (!res.done) {
-            const keyParts = ctx.stub.splitCompositeKey(res.value.key);
-            result.push(keyParts.attributes[1]); // doctorId
+            const data = JSON.parse(res.value.value.toString());
+            result.push({
+                doctorId: data.doctorId,
+                hospitalId: data.hospitalId,
+                grantedBy: data.grantedBy,
+                grantedAt: data.grantedAt
+            });
             res = await iterator.next();
         }
     
-        await iterator.close(); // always close the iterator
+        await iterator.close();
         return JSON.stringify(result);
     }
+    
+    
     
     
     async getPatientsForDoctor(ctx) {
@@ -459,7 +528,7 @@ class ehrChainCode extends Contract {
     
                 if (docId === doctorId) {
                     // Fetch patient info
-                    const patientKey = `patient-${patientId}`;
+                    const patientKey = `Patient-${patientId}`;
                     const patientData = await ctx.stub.getState(patientKey);
                     if (patientData && patientData.length > 0) {
                         const patient = JSON.parse(patientData.toString());
@@ -510,7 +579,7 @@ class ehrChainCode extends Contract {
         let doctorCount = 0;
     
         // Count patients
-        const patientIterator = await ctx.stub.getStateByRange('patient-', 'patient-~');
+        const patientIterator = await ctx.stub.getStateByRange('Patient-', 'Patient-~');
         let res = await patientIterator.next();
         while (!res.done) {
             patientCount++;

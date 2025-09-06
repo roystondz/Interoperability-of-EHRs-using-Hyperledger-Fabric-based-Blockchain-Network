@@ -5,140 +5,226 @@ const path = require('path');
 const FabricCAServices = require('fabric-ca-client');
 const { Wallets, Gateway } = require('fabric-network');
 
+const ORG_ID = 'org1';
+const MSP_ID = 'Org1MSP';
+const CHANNEL_NAME = 'mychannel';
+const CHAINCODE_NAME = 'ehrChainCode';
 
-const registerUser = async (adminID, doctorId, userID, userRole, args) => {
-    // const adminID = 'admin';
-    const orgID = 'Org1';
-    
-    const ccpPath = path.resolve(__dirname, '..', 'fabric-samples','test-network', 'organizations', 'peerOrganizations', `${orgID}.example.com`.toLowerCase(), `connection-${orgID}.json`.toLowerCase());
+// ----------------- Helper Functions -----------------
+
+// Load network config
+const loadCCP = () => {
+    const ccpPath = path.resolve(
+        __dirname,
+        '..',
+        'fabric-samples',
+        'test-network',
+        'organizations',
+        'peerOrganizations',
+        `${ORG_ID}.example.com`.toLowerCase(),
+        `connection-${ORG_ID}.json`.toLowerCase()
+    );
     const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
-    const orgMSP = ccp.organizations[orgID].mspid;
+    return ccp;
+};
 
-    // Create a new CA client for interacting with the CA.
-    const caOrg = ccp.organizations[orgID].certificateAuthorities[0]
-    const caURL = ccp.certificateAuthorities[caOrg].url;
-    const ca = new FabricCAServices(caURL);
+// Create CA client
+const getCAClient = (ccp) => {
+    const caInfo = ccp.certificateAuthorities[`ca.${ORG_ID.toLowerCase()}.example.com`];
+    return new FabricCAServices(caInfo.url);
+};
 
-    // Create a new file system based wallet for managing identities.
+// Create wallet
+const getWallet = async () => {
     const walletPath = path.join(process.cwd(), 'wallet');
-    const wallet = await Wallets.newFileSystemWallet(walletPath);
-    console.log(`Wallet path: ${walletPath}`);
+    return await Wallets.newFileSystemWallet(walletPath);
+};
 
-    // Check to see if we've already enrolled the user.
-    const userIdentity = await wallet.get(userID);
-    if (userIdentity) {
-        console.log(`An identity for the user ${userID} already exists in the wallet.`);
-        return {
-            statusCode: 200,
-            message: `${userID} has already been enrolled.`
-        };
-    } else {
-        console.log(`An identity for the user ${userID} does not exist so creating one in the wallet.`);
-    }
+// ----------------- Main Functions -----------------
 
-    // Check to see if we've already enrolled the admin user.
-    const adminIdentity = await wallet.get(adminID);
-    if (!adminIdentity) {
-        console.log(`An identity for the admin user ${adminID} does not exist in the wallet.`);
-        console.log('Run the enrollAdmin.js application before retrying.');
-        return {
-            statusCode: 200,
-            message: `An identity for the admin user does not exist in the wallet`
-        };
-    }
+// 1️⃣ Register & Enroll Hospital (by hospitalAdmin)
+const registerHospital = async (adminId, hospitalId, name, city) => {
+    const ccp = loadCCP();
+    const ca = getCAClient(ccp);
+    const wallet = await getWallet();
+    
+    // Check hospital identity
+    const existingHospital = await wallet.get(hospitalId);
+    if (existingHospital) return { message: `${hospitalId} already exists` };
 
-    // build a user object for authenticating with the CA //Verify
+    // Get hospitalAdmin identity
+    const adminIdentity = await wallet.get(adminId);
+    if (!adminIdentity) throw new Error(`Admin identity ${adminId} not found`);
+
     const provider = wallet.getProviderRegistry().getProvider(adminIdentity.type);
-    const adminUser = await provider.getUserContext(adminIdentity, adminID);
+    const adminUser = await provider.getUserContext(adminIdentity, adminId);
 
-    // Register the user, enroll the user, and import the new identity into the wallet.
-    // if affiliation is specified by client, the affiliation value must be configured in CA
+    // Register hospital
     const secret = await ca.register({
-        affiliation: `${orgID}.department1`.toLowerCase(), //TODO: as per affiliation in config .${userRole}
-        enrollmentID: userID,
+        affiliation: `${ORG_ID}.hospital`,
+        enrollmentID: hospitalId,
         role: 'client',
         attrs: [
-            {name: 'role', value: userRole, ecert: true},           
-            {name: 'uuid', value: userID, ecert: true},           
-        ]
+            { name: 'role', value: 'hospital', ecert: true },
+            { name: 'uuid', value: hospitalId, ecert: true },
+            {name:'hf.Registrar.Roles', value:'hospital,doctor,client', ecert:true},
+            {name:'hf.Registrar.Attributes', value:'*', ecert:true},
+        ],
     }, adminUser);
+
+    // Enroll hospital
     const enrollment = await ca.enroll({
-        enrollmentID: userID,
+        enrollmentID: hospitalId,
         enrollmentSecret: secret,
         attr_reqs: [
-            {name: 'role', optional: false},          
-            {name: 'uuid', optional: false},          
+            { name: 'role', optional: false },
+            { name: 'uuid', optional: false }
         ]
     });
+
     const x509Identity = {
         credentials: {
             certificate: enrollment.certificate,
-            privateKey: enrollment.key.toBytes(),
+            privateKey: enrollment.key.toBytes()
         },
-        mspId: orgMSP,
-        type: 'X.509',
+        mspId: MSP_ID,
+        type: 'X.509'
     };
-    await wallet.put(userID, x509Identity);
-    console.log(`Successfully registered and enrolled user ${userID} and imported it into the wallet`);
-    
-     // Create a new gateway for connecting to our peer node.
-        const gateway = new Gateway();
-        await gateway.connect(ccp, { wallet, identity: doctorId, discovery: { enabled: true, asLocalhost: true } });
 
-        // Get the network (channel) our contract is deployed to.
-        const network = await gateway.getNetwork('mychannel');
+    await wallet.put(hospitalId, x509Identity);
+    return { message: `Hospital ${hospitalId} registered successfully` };
+};
 
-        // Get the contract from the network.
-        const contract = network.getContract('ehrChainCode');
+// 2️⃣ Register & Enroll Doctor (by Hospital)
+const registerDoctor = async (hospitalId, doctorId, hospitalName, name, department, city) => {
+    const ccp = loadCCP();
+    const ca = getCAClient(ccp);
+    const wallet = await getWallet();
 
-        const args01 = {
-            patientId:userID,
-            hospitalName: args.hospitalName,
-            name:args.name,
-            city:args.city
-        }
+    // Check doctor identity
+    const existingDoctor = await wallet.get(doctorId);
+    if (existingDoctor) return { message: `${doctorId} already exists` };
 
-        const buffer = await contract.submitTransaction('onboardPatient', JSON.stringify(args01));
-        // Disconnect from the gateway.
-        gateway.disconnect();
+    // Get hospital identity
+    const hospitalIdentity = await wallet.get(hospitalId);
+    if (!hospitalIdentity) throw new Error(`Hospital identity ${hospitalId} not found`);
 
-    return {
-        statusCode: 200,
-        userID: userID,
-        role: userRole,
-        message: `${userID} registered and enrolled successfully.`,
-        chaincodeRes: buffer.toString()
+    const provider = wallet.getProviderRegistry().getProvider(hospitalIdentity.type);
+    const hospitalUser = await provider.getUserContext(hospitalIdentity, hospitalId);
+
+    // Register doctor
+    const secret = await ca.register({
+        enrollmentID: doctorId,
+        role: 'client',
+        attrs: [
+            { name: 'role', value: 'doctor', ecert: true },
+            { name: 'uuid', value: doctorId, ecert: true },
+            { name: 'department', value: department, ecert: true }
+        ],
+        affiliation: `${ORG_ID}.hospital.doctor`
+    }, hospitalUser);
+
+    // Enroll doctor
+    const enrollment = await ca.enroll({
+        enrollmentID: doctorId,
+        enrollmentSecret: secret,
+        attr_reqs: [
+            { name: 'role', optional: false },
+            { name: 'uuid', optional: false },
+            { name: 'department', optional: false }
+        ]
+    });
+
+    const x509Identity = {
+        credentials: {
+            certificate: enrollment.certificate,
+            privateKey: enrollment.key.toBytes()
+        },
+        mspId: MSP_ID,
+        type: 'X.509'
     };
-}
 
-const login = async (userID) => {
+    await wallet.put(doctorId, x509Identity);
 
-    const orgID = 'Org1';
+    // Onboard doctor on ledger
+    const gateway = new Gateway();
+    await gateway.connect(ccp, { wallet, identity: hospitalId, discovery: { enabled: true, asLocalhost: true } });
+    const network = await gateway.getNetwork(CHANNEL_NAME);
+    const contract = network.getContract(CHAINCODE_NAME);
 
-    const ccpPath = path.resolve(__dirname, '..', 'fabric-samples', 'test-network', 'organizations', 'peerOrganizations', `${orgID}.example.com`.toLowerCase(), `connection-${orgID}.json`.toLowerCase());
-    const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
+    const res = await contract.submitTransaction('onboardDoctor', JSON.stringify({ doctorId, hospitalName, name, department, city }));
+    gateway.disconnect();
 
-    // Create a new file system based wallet for managing identities.
-    const walletPath = path.join(process.cwd(), 'wallet');
-    const wallet = await Wallets.newFileSystemWallet(walletPath);
-    console.log(`Wallet path: ${walletPath}`);
+    return { message: `Doctor ${doctorId} registered and onboarded successfully`, chaincodeRes: res.toString() };
+};
 
-    // Check to see if we've already enrolled the user.
-    const identity = await wallet.get(userID);
-    if (!identity) {
-        console.log(`An identity for the user ${userID} does not exist in the wallet`);
-        console.log('Run the registerUser.js application before retrying');
-        return {
-            statusCode: 200,
-            message: `An identity for the user ${userID} does not exist.`
-        };
-    } else {
-        return {
-            statusCode: 200,
-            userID: userID,           
-            message: `User login successful:: ${userID} .`
-        };
-    }
-}
+// 3️⃣ Register & Enroll Patient (by Doctor)
+const registerPatient = async (hospitalId, patientId, hospitalName, name, dob, city) => {
+    const ccp = loadCCP();
+    const ca = getCAClient(ccp);
+    const wallet = await getWallet();
 
-module.exports = {registerUser, login};
+    // Check patient identity
+    const existingPatient = await wallet.get(patientId);
+    if (existingPatient) return { message: `${patientId} already exists` };
+
+    // Get doctor identity
+    const hospitalIdentity = await wallet.get(hospitalId);
+    if (!hospitalIdentity) throw new Error(`Hospital identity ${hospitalId} not found`);
+
+    const provider = wallet.getProviderRegistry().getProvider(hospitalIdentity.type);
+    const hospital = await provider.getUserContext(hospitalIdentity, hospitalId);
+
+    // Register patient
+    const secret = await ca.register({
+        enrollmentID: patientId,
+        role: 'client',
+        attrs: [
+            { name: 'role', value: 'patient', ecert: true },
+            { name: 'uuid', value: patientId, ecert: true }
+        ],
+        affiliation: `${ORG_ID}.hospital.patient`
+    }, hospital);
+
+    // Enroll patient
+    const enrollment = await ca.enroll({
+        enrollmentID: patientId,
+        enrollmentSecret: secret,
+        attr_reqs: [
+            { name: 'role', optional: false },
+            { name: 'uuid', optional: false }
+        ]
+    });
+
+    const x509Identity = {
+        credentials: {
+            certificate: enrollment.certificate,
+            privateKey: enrollment.key.toBytes()
+        },
+        mspId: MSP_ID,
+        type: 'X.509'
+    };
+
+    await wallet.put(patientId, x509Identity);
+
+    // Onboard patient on ledger
+    const gateway = new Gateway();
+    await gateway.connect(ccp, { wallet, identity: hospitalId, discovery: { enabled: true, asLocalhost: true } });
+    const network = await gateway.getNetwork(CHANNEL_NAME);
+    const contract = network.getContract(CHAINCODE_NAME);
+
+    const res = await contract.submitTransaction('onboardPatient', JSON.stringify({ patientId, hospitalName, name, dob, city }));
+    gateway.disconnect();
+
+    return { message: `Patient ${patientId} registered and onboarded successfully`, chaincodeRes: res.toString() };
+};
+
+// 4️⃣ Login (check identity exists)
+const login = async (userId) => {
+    const wallet = await getWallet();
+    const identity = await wallet.get(userId);
+    if (!identity) return { message: `User ${userId} not found` };
+    return { message: `User ${userId} login successful`, userId };
+};
+
+module.exports = { registerHospital, registerDoctor, registerPatient, login };

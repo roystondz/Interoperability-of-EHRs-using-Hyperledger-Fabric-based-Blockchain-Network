@@ -141,6 +141,19 @@ registry:
           hf.Registrar.Attributes: "*"
           hf.AffiliationMgr: true
 
+     - name: hospitalAdmin
+       pass: hospitalAdminpw
+       type: client
+       affiliation: org1.hospital
+       attrs:
+          hf.Registrar.Roles: "hospital,doctor,client"
+          hf.Registrar.Attributes: "*"
+          hf.AffiliationMgr: true
+          hf.IntermediateCA: true
+          hf.GenCRL: true
+
+
+
 #############################################################################
 #  Database section
 #  Supported types are: "sqlite3", "postgres", and "mysql".
@@ -243,10 +256,14 @@ ldap:
 #############################################################################
 affiliations:
    org1:
-      - department1
-      - department2
+      hospital:
+        - doctor
+        - patient
+      department1: []
+      department2: []
    org2:
-      - department1
+      department1: []
+
 
 #############################################################################
 #  Signing section

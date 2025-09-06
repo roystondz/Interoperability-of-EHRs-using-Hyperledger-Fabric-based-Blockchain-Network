@@ -6,8 +6,8 @@ const { Wallets, Gateway } = require('fabric-network');
 
 
 const invokeTransaction = async (fcn, args, userID) => {
-
-    const orgID = 'Org1';
+    console.log("User id : ",userID)
+    const orgID = 'org1';
     const channelName = 'mychannel';
     const chaincodeName = 'ehrChainCode';
 
