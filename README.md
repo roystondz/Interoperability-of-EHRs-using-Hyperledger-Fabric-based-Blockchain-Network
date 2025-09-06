@@ -46,10 +46,10 @@ It leverages:
 ### Steps to run the project
 
 #### Start docker before running the project
-- Should be running during the entire project to ensure Blockchain Transactions
+> Should be running during the entire project to ensure Blockchain Transactions
 
 #### 1.Install the Fabric Samples
-- Run this command in BASH Terminal
+> Run this command in BASH Terminal
 ```bash
 $ chmod +x ./install.sh
 $ ./install.sh  
@@ -95,7 +95,7 @@ $ node app.js
 $ ./network.sh down
 ```
 
-- Run the commands as specified,
+> Run the commands as specified
 
 # API Enpoints
 
@@ -121,7 +121,7 @@ $ ./network.sh down
 
 
 
-- Not preferred (only for backup)
+> Not preferred (only for backup)
 #### Running via the chaincode folder
 ```bash
  $ ./network.sh deployCC -ccn ehrChainCode -ccp ../../chaincode -ccl javascript
@@ -129,10 +129,10 @@ $ ./network.sh down
 
 
 #### Incase of Error : Cannot detect command
-- Run in terminal
+> Run in terminal
 ```bash
 CORE_CHAINCODE_BUILDER=hyperledger/fabric-nodeenv:2.5
 ```
 
-- Read Operations are made through query.js
-- Write Operations are made through invoke.js
+> Read Operations are made through query.js
+> Write Operations are made through invoke.js
