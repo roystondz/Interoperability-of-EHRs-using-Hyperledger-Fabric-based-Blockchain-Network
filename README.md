@@ -62,18 +62,8 @@ $ npm i
 ```
 
 #### 3.Start the network
-##### Windows
-```bash
-$ cd ./fabric-samples/test-network 
 
-
-$ ./network.sh up -ca -s couchdb
-$ ./network.sh createChannel
-
-```
-
-
-##### MacOS
+##### MacOS & Windows
 ```bash
 $ cd ./fabric-samples/test-network
 
@@ -87,6 +77,18 @@ $ ./network.sh deployCC -ccn ehrChainCode -ccp ../asset-transfer-basic/chaincode
 #ehrChaincode is the name of the CHAINCODE and the following path
 ```
 
+##### 5.Register Org Admins
+```bash
+$ cd server-node-sdk/
+$ node cert-scripts/registerOrg1Admin.js
+```
+
+
+#### 6.Run the backend
+```bash
+$ node app.js
+```
+
 #### To shut down the network
 ```bash
 $ ./network.sh down
@@ -94,44 +96,28 @@ $ ./network.sh down
 
 - Run the commands as specified,
 
-##### 5.Register Org Admins
-```bash
-$ cd server-node-sdk/
-$ node cert-scripts/registerOrg1Admin.js
-$ node cert-scripts/registerOrg2Admin.js
-```
+# API Enpoints
 
-##### 6.Onboard Scripts
-```bash
-$ node cert-scripts/onboardHospital01.js
-$ node cert-scripts/onboardDoctor.js
+| **Method** | **Endpoint**                | **Description**                          | **Role**         | **Parameters (Body / Query)**                                          |
+| ---------- | --------------------------- | ---------------------------------------- | ---------------- | ---------------------------------------------------------------------- |
+| `GET`      | `/status`                   | Check server status                      | Public           | –                                                                      |
+| `POST`     | `/registerHospital`         | Register a new hospital                  | HospitalAdmin    | `adminId`, `hospitalId`, `name`, `city`                                |
+| `POST`     | `/registerDoctor`           | Register a new doctor                    | Hospital         | `hospitalId`, `doctorId`, `hospitalName`, `name`, `department`, `city` |
+| `POST`     | `/registerPatient`          | Register a new patient                   | Doctor           | `doctorId`, `patientId`, `hospitalName`, `name`, `dob`, `city`         |
+| `POST`     | `/login`                    | Login as a user                          | Any              | `userId`                                                               |
+| `POST`     | `/addRecord`                | Add a medical record                     | Doctor           | `doctorId`, `patientId`, `diagnosis`, `prescription`                   |
+| `POST`     | `/getAllRecordsByPatientId` | Fetch all records of a patient           | Doctor / Patient | `userId`, `patientId`                                                  |
+| `POST`     | `/getRecordById`            | Get a specific medical record            | Doctor / Patient | `userId`, `patientId`, `recordId`                                      |
+| `POST`     | `/queryHistoryOfAsset`      | View record history                      | Doctor / Patient | `userId`, `recordId`                                                   |
+| `POST`     | `/grantAccess`              | Grant doctor access to records           | Patient          | `patientId`, `doctorIdToGrant`, `hospitalId`                           |
+| `POST`     | `/revokeAccess`             | Revoke doctor's access                   | Patient          | `userId`, `patientId`, `doctorId`                                      |
+| `POST`     | `/getAccessList`            | List doctors with access                 | Patient          | `userId`, `patientId`                                                  |
+| `POST`     | `/getPatientsForDoctor`     | List all patients a doctor has access to | Doctor           | `doctorId`                                                             |
+| `POST`     | `/updatePatientProfile`     | Update patient profile                   | Patient          | `userId`, `name`, `dob`, `city`                                        |
+| `POST`     | `/fetchLedger`              | View full ledger (audit)                 | Admin            | `userId`                                                               |
+| `GET`      | `/getSystemStats`           | View system-wide stats                   | Admin            | `userId` *(as query param)*                                            |
 
-$ node cert-scripts/onboardInsuranceCompany.js
-$ node cert-scripts/onboardInsuranceAgent.js
-```
-#### 7.Run the backend
-```bash
-$ node app.js
-```
-# Additional Information
-API Enpoints
 
-| **Method** | **Endpoint**                | **Description**                          | **Role**         | **Parameters (Body / Query)**                          |
-| ---------- | --------------------------- | ---------------------------------------- | ---------------- | ------------------------------------------------------ |
-| `GET`      | `/status`                   | Check server status                      | Public           | –                                                      |
-| `POST`     | `/registerPatient`          | Register a new patient                   | Admin            | `adminId`, `userId`, `doctorId`, `name`, `dob`, `city` |
-| `POST`     | `/loginPatient`             | Login as a patient                       | Patient          | `userId`                                               |
-| `POST`     | `/addRecord`                | Add a medical record                     | Doctor           | `userId`, `patientId`, `diagnosis`, `prescription`     |
-| `POST`     | `/getAllRecordsByPatientId` | Fetch all records of a patient           | Doctor / Patient | `userId`, `patientId`                                  |
-| `POST`     | `/getRecordById`            | Get a specific medical record            | Doctor / Patient | `userId`, `patientId`, `recordId`                      |
-| `POST`     | `/queryHistoryOfAsset`      | View record history                      | Doctor / Patient | `userId`, `recordId`                                   |
-| `POST`     | `/grantAccess`              | Grant doctor access to records           | Patient          | `userId`, `patientId`, `doctorIdToGrant`               |
-| `POST`     | `/revokeAccess`             | Revoke doctor's access                   | Patient          | `userId`, `patientId`, `doctorId`                      |
-| `POST`     | `/getAccessList`            | List doctors with access                 | Patient          | `userId`, `patientId`                                  |
-| `POST`     | `/getPatientsForDoctor`     | List all patients a doctor has access to | Doctor           | `userId`                                               |
-| `POST`     | `/updatePatientProfile`     | Update patient profile                   | Patient          | `userId`, `name`, `dob`, `city`                        |
-| `POST`     | `/fetchLedger`              | View full ledger (audit)                 | Admin            | `userId`                                               |
-| `GET`      | `/getSystemStats`           | View system-wide stats                   | Admin            | `userId` *(as query param)*                            |
 
 
 - Not preferred (only for backup)
@@ -139,7 +125,6 @@ API Enpoints
 ```bash
  $ ./network.sh deployCC -ccn ehrChainCode -ccp ../../chaincode -ccl javascript
 ```
-
 
 
 #### Incase of Error : Cannot detect command
