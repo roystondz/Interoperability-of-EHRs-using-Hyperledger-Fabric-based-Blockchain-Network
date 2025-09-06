@@ -46,6 +46,7 @@ It leverages:
 ### Steps to run the project
 
 #### Start docker before running the project
+- Should be running during the entire project to ensure Blockchain Transactions
 
 #### 1.Install the Fabric Samples
 - Run this command in BASH Terminal
