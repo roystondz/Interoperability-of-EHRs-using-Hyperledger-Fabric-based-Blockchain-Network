@@ -136,3 +136,4 @@ CORE_CHAINCODE_BUILDER=hyperledger/fabric-nodeenv:2.5
 
 > Read Operations are made through query.js
 > Write Operations are made through invoke.js
+> Backend established in a separate Repo
