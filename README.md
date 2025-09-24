@@ -48,6 +48,8 @@ It leverages:
 #### Start docker before running the project
 > Should be running during the entire project to ensure Blockchain Transactions occur properly
 
+
+### Steps for MacOS
 #### 1.Install the Fabric Samples
 > Run this command in BASH Terminal
 ```bash
@@ -55,7 +57,7 @@ $ chmod +x ./install.sh
 $ ./install.sh  
 ```
 
-#### 2.Register the admins for the organisations
+#### 2.Install the node modules
 ```bash
 cd ./server-node-sdk
 #install the node modules
@@ -64,7 +66,6 @@ $ npm i
 
 #### 3.Start the network
 
-##### MacOS & Windows
 ```bash
 $ cd ./fabric-samples/test-network
 
@@ -78,7 +79,7 @@ $ ./network.sh deployCC -ccn ehrChainCode -ccp ../asset-transfer-basic/chaincode
 #ehrChaincode is the name of the CHAINCODE and the following path
 ```
 
-##### 5.Register Org Admins
+##### 5.Register Org Admin (HospitalAdmin)
 ```bash
 $ cd server-node-sdk/
 $ node cert-scripts/registerOrg1Admin.js
@@ -94,6 +95,61 @@ $ node app.js
 ```bash
 $ ./network.sh down
 ```
+
+### Steps for Windows
+> Instal WSL within the system
+- Start WSL and clone the project 
+```bash
+$ git clone 'repo link'
+```
+
+- Then run the install script -> Will install the required Hyperledger binaries
+```bash
+$ ./install.sh
+```
+
+- Open the root folder in VS code
+#### 1.Install the node modules
+```bash
+cd ./server-node-sdk
+#install the node modules
+$ npm i
+```
+
+#### 2.Start the network
+
+```bash
+$ cd ./fabric-samples/test-network
+
+$ ./network.sh up createChannel -ca -s couchdb
+```
+
+#### 3.Deploy the chaincode
+```bash
+$ ./network.sh deployCC -ccn ehrChainCode -ccp ../asset-transfer-basic/chaincode-javascript/ -ccl javascript
+
+#ehrChaincode is the name of the CHAINCODE and the following path
+```
+
+##### 4.Register Org Admin (HospitalAdmin)
+```bash
+$ cd server-node-sdk/
+$ node cert-scripts/registerOrg1Admin.js
+```
+
+
+#### 5.Run the backend
+```bash
+$ node app.js
+```
+
+#### To shut down the network
+```bash
+$ ./network.sh down
+```
+
+
+
 
 > Run the commands as specified
 
