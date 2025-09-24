@@ -175,7 +175,31 @@ $ ./network.sh down
 | `GET`      | `/getSystemStats`           | View system-wide stats                   | Admin            | `userId` *(as query param)*                                            |
 
 
+## Incase of containers not forming in docker
+#### Stop all containers and remove old network:
+```bash
+docker ps -a
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+docker network rm fabric_test
+```
 
+#### Prune unused Docker resources (optional, but helps):
+```bash
+docker system prune -f
+docker volume prune -f
+```
+
+#### Start network again from a clean state:
+```bash
+./network.sh up createChannel -ca -s couchdb
+```
+
+
+> Make sure you run this in WSL Ubuntu, not MINGW64.
+> Ensure your Fabric binaries are in $PATH in WSL.
+
+-----------------------
 
 > Not preferred (only for backup)
 #### Running via the chaincode folder
