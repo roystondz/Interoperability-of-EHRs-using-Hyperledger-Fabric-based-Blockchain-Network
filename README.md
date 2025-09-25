@@ -59,7 +59,7 @@ $ ./install.sh
 
 #### 2.Install the node modules
 ```bash
-cd ./server-node-sdk
+$ cd ./server-node-sdk
 #install the node modules
 $ npm i
 ```
@@ -111,7 +111,7 @@ $ ./install.sh
 - Open the root folder in VS code
 #### 1.Install the node modules
 ```bash
-cd ./server-node-sdk
+$ cd ./server-node-sdk
 #install the node modules
 $ npm i
 ```
