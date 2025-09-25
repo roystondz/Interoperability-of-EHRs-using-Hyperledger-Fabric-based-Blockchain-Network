@@ -20,7 +20,7 @@ It leverages:
 
 ### Architecture
 ```bash
-[Frontend - Next.js]
+[Frontend - React]
        |
 [Node.js Backend API]
        |
@@ -43,7 +43,7 @@ It leverages:
 | jq (for shell scripts) | Latest | `jq --version` |
 
 
-### Steps to run the project
+## Steps to run the project
 
 #### Start docker before running the project
 > Should be running during the entire project to ensure Blockchain Transactions occur properly
@@ -65,10 +65,8 @@ $ npm i
 ```
 
 #### 3.Start the network
-
 ```bash
 $ cd ./fabric-samples/test-network
-
 $ ./network.sh up createChannel -ca -s couchdb
 ```
 
@@ -84,7 +82,6 @@ $ ./network.sh deployCC -ccn ehrChainCode -ccp ../asset-transfer-basic/chaincode
 $ cd server-node-sdk/
 $ node cert-scripts/registerOrg1Admin.js
 ```
-
 
 #### 6.Run the backend
 ```bash
