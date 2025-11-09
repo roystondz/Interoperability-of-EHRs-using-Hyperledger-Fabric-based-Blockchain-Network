@@ -11,6 +11,16 @@
     const invoke = require('./invoke');
     const query = require('./query');
     const cors = require('cors');
+    
+
+    const fs = require('fs');
+    const multer = require('multer');
+    const axios = require('axios');
+    const FormData = require('form-data');
+    const dotenv = require('dotenv');
+    dotenv.config();
+
+    const upload = multer({ dest: 'uploads/' });
 
     const app = express();
     app.use(express.json());
@@ -95,19 +105,78 @@
     });
 
 
-    app.post('/addRecord', async function (req, res, next){
-        try {
-            //  Only doctors can add records
-            const {doctorId, patientId, diagnosis, prescription,reportHash} = req.body;
-            const result = await invoke.invokeTransaction('addRecord', {patientId, diagnosis, prescription,reportHash}, doctorId);
+    // app.post('/addRecord', async function (req, res, next){
+    //     try {
+    //         //  Only doctors can add records
+    //         const {doctorId, patientId, diagnosis, prescription,reportHash} = req.body;
+    //         const result = await invoke.invokeTransaction('addRecord', {patientId, diagnosis, prescription,reportHash}, doctorId);
                 
-            res.send({sucess:true, data: result})
+    //         res.send({sucess:true, data: result})
                     
-        } catch (error) {       
-            next(error);
-        }
-    });
+    //     } catch (error) {       
+    //         next(error);
+    //     }
+    // });
 
+
+    //test
+
+    app.post('/addRecord', upload.single('report'), async (req, res, next) => {
+        try {
+          const { doctorId, patientId, diagnosis, prescription } = req.body;
+          const filePath = req.file?.path;
+      
+          if (!doctorId || !patientId || !diagnosis || !prescription) {
+            return res.status(400).json({ success: false, message: 'Missing required fields' });
+          }
+      
+          if (!filePath) {
+            return res.status(400).json({ success: false, message: 'File missing' });
+          }
+      
+          console.log(`Uploading file ${req.file.originalname} to Pinata...`);
+      
+       
+          const formData = new FormData();
+          formData.append('file', fs.createReadStream(filePath));
+      
+          const pinataRes = await axios.post(
+            'https://api.pinata.cloud/pinning/pinFileToIPFS',
+            formData,
+            {
+              headers: {
+                ...formData.getHeaders(),
+                pinata_api_key: process.env.PINATA_API_KEY,
+                pinata_secret_api_key: process.env.PINATA_API_SECRET,
+              },
+            }
+          );
+      
+          const ipfsHash = pinataRes.data.IpfsHash;
+          console.log('Uploaded to IPFS with hash:', ipfsHash);
+      
+      
+          fs.unlinkSync(filePath);
+      // lin to the block chain here 
+          const result = await invoke.invokeTransaction(
+            'addRecord',
+            { patientId, diagnosis, prescription, reportHash: ipfsHash },
+            doctorId
+          );
+      
+          res.status(200).json({
+            success: true,
+            ipfsHash,
+            data: result,
+          });
+        } catch (error) {
+          console.error('Error in /addRecord:', error.message);
+          next(error);
+        }
+      });
+      
+
+    //
 
     app.post('/getAllRecordsByPatientId', async function (req, res, next){
         try {
