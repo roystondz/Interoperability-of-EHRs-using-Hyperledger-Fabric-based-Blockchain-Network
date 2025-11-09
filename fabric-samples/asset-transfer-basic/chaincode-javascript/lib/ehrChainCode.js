@@ -270,7 +270,7 @@ class ehrChainCode extends Contract {
 
     async addRecord(ctx, args) {
 
-        const {patientId, diagnosis, prescription} = JSON.parse(args);
+        const {patientId, diagnosis, prescription,reportHash} = JSON.parse(args);
         console.log("ARGS_RAW",args)
         console.log("ARGS", patientId, diagnosis, prescription)
         const { role, uuid: callerId } = this.getCallerAttributes(ctx);
@@ -305,6 +305,7 @@ class ehrChainCode extends Contract {
             doctorId: callerId,
             diagnosis,
             prescription,
+            reportHash:reportHash?reportHash:'',
             timestamp
         };
 

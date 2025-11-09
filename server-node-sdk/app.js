@@ -98,8 +98,8 @@
     app.post('/addRecord', async function (req, res, next){
         try {
             //  Only doctors can add records
-            const {doctorId, patientId, diagnosis, prescription} = req.body;
-            const result = await invoke.invokeTransaction('addRecord', {patientId, diagnosis, prescription}, doctorId);
+            const {doctorId, patientId, diagnosis, prescription,reportHash} = req.body;
+            const result = await invoke.invokeTransaction('addRecord', {patientId, diagnosis, prescription,reportHash}, doctorId);
                 
             res.send({sucess:true, data: result})
                     
