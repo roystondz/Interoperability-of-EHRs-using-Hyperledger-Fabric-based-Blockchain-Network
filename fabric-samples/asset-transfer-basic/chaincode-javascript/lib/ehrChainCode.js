@@ -547,6 +547,7 @@ class ehrChainCode extends Contract {
                                         recordId: record.recordId,
                                         diagnosis: record.diagnosis,
                                         prescription: record.prescription,
+                                        reportHash: record.reportHash,
                                         timestamp: record.timestamp
                                     });
                                 }
