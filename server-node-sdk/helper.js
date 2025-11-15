@@ -43,7 +43,7 @@ const getWallet = async () => {
 // ----------------- Main Functions -----------------
 
 // 1️⃣ Register & Enroll Hospital (by hospitalAdmin)
-const registerHospital = async (adminId, hospitalId, name, city) => {
+const registerHospital = async (adminId, hospitalId, name, city,departments) => {
     const ccp = loadCCP();
     const ca = getCAClient(ccp);
     const wallet = await getWallet();
@@ -92,7 +92,15 @@ const registerHospital = async (adminId, hospitalId, name, city) => {
     };
 
     await wallet.put(hospitalId, x509Identity);
-    return { message: `Hospital ${hospitalId} registered successfully` };
+    const gateway = new Gateway();
+    await gateway.connect(ccp, { wallet, identity: hospitalId, discovery: { enabled: true, asLocalhost: true } });
+    const network = await gateway.getNetwork(CHANNEL_NAME);
+    const contract = network.getContract(CHAINCODE_NAME);
+
+    const res = await contract.submitTransaction('onboardHospital', JSON.stringify({ hospitalId, name,city, departments }));
+    gateway.disconnect();
+
+    return { message: `Hospital ${hospitalId} registered and onboarded successfully`, chaincodeRes: res.toString() };
 };
 
 // 2️⃣ Register & Enroll Doctor (by Hospital)

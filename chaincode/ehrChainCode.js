@@ -499,18 +499,33 @@ class ehrChainCode extends Contract {
         let res = await iterator.next();
         while (!res.done) {
             const data = JSON.parse(res.value.value.toString());
+            const doctorId = data.doctorId;
+    
+            // Fetch doctor details
+            const doctorKey = `Doctor-${doctorId}`;
+            const doctorJSON = await ctx.stub.getState(doctorKey);
+    
+            let doctorInfo = {};
+            if (doctorJSON && doctorJSON.length > 0) {
+                doctorInfo = JSON.parse(doctorJSON.toString());
+            }
+    
             result.push({
                 doctorId: data.doctorId,
+                doctorName: doctorInfo.name || "Unknown",
+                department: doctorInfo.department || "N/A",
+                hospitalName: doctorInfo.hospitalName || "N/A",
                 hospitalId: data.hospitalId,
-                grantedBy: data.grantedBy,
                 grantedAt: data.grantedAt
             });
+    
             res = await iterator.next();
         }
     
         await iterator.close();
         return JSON.stringify(result);
     }
+    
     
     
     
@@ -575,28 +590,133 @@ class ehrChainCode extends Contract {
     
 
     async getSystemStats(ctx) {
-        let patientCount = 0;
-        let doctorCount = 0;
+        let totalHospitals = 0;
+        let totalDoctors = 0;
+        let totalPatients = 0;
+        let totalRecords = 0;
     
-        // Count patients
-        const patientIterator = await ctx.stub.getStateByRange('Patient-', 'Patient-~');
-        let res = await patientIterator.next();
-        while (!res.done) {
-            patientCount++;
-            res = await patientIterator.next();
+        // --------------------------
+        // COUNT HOSPITALS
+        // --------------------------
+        const hospIter = await ctx.stub.getStateByRange('HOSP-', 'HOSP-~');
+        let h = await hospIter.next();
+        while (!h.done) {
+            totalHospitals++;
+            h = await hospIter.next();
         }
-        await patientIterator.close();
+        await hospIter.close();
     
-        // Count doctors
+        // --------------------------
+        // COUNT DOCTORS
+        // --------------------------
         const doctorIterator = await ctx.stub.getStateByRange('Doctor-', 'Doctor-~');
-        res = await doctorIterator.next();
-        while (!res.done) {
-            doctorCount++;
-            res = await doctorIterator.next();
+        let d = await doctorIterator.next();
+        while (!d.done) {
+            totalDoctors++;
+            d = await doctorIterator.next();
         }
         await doctorIterator.close();
     
-        return JSON.stringify({ patientCount, doctorCount });
+        // --------------------------
+        // COUNT PATIENTS
+        // --------------------------
+        const patientIterator = await ctx.stub.getStateByRange('Patient-', 'Patient-~');
+        let p = await patientIterator.next();
+        while (!p.done) {
+            totalPatients++;
+            p = await patientIterator.next();
+        }
+        await patientIterator.close();
+    
+        // --------------------------
+        // COUNT RECORDS
+        // --------------------------
+        const recordIter = await ctx.stub.getStateByPartialCompositeKey('record', []);
+        let r = await recordIter.next();
+        while (!r.done) {
+            totalRecords++;
+            r = await recordIter.next();
+        }
+        await recordIter.close();
+    
+        return JSON.stringify({
+            totalHospitals,
+            totalDoctors,
+            totalPatients,
+            totalRecords
+        });
+    }
+    
+    
+    
+    async getHospitalStats(ctx) {
+        const results = [];
+    
+        // STEP 1 — LOAD ALL HOSPITALS
+        const hospitalIterator = await ctx.stub.getStateByRange('HOSP-', 'HOSP-~');
+        let hosp = await hospitalIterator.next();
+    
+        while (!hosp.done) {
+            const hospital = JSON.parse(hosp.value.value.toString());
+            const hospitalId = hospital.hospitalId;    // example: HOSP-01
+            const hospitalCode = hospitalId.split('-')[1];  // "01"
+    
+            let totalDoctors = 0;
+            let totalRecords = 0;
+            let patientSet = new Set();
+    
+            // STEP 2 — COUNT DOCTORS OF THIS HOSPITAL
+            const docIterator = await ctx.stub.getStateByRange('Doctor-', 'Doctor-~');
+            let doc = await docIterator.next();
+    
+            while (!doc.done) {
+                const doctor = JSON.parse(doc.value.value.toString());
+                const docId = doctor.doctorId;   // example: DOC-0101
+    
+                // Extract hospital part: DOC-0101 → "01"
+                const docHospitalCode = docId.substring(4, 6);
+                const docHospitalId = `HOSP-${docHospitalCode}`;
+    
+                if (docHospitalId === hospitalId) {
+                    totalDoctors++;
+    
+                    // STEP 3 — COUNT RECORDS MADE BY THIS DOCTOR
+                    const recordIter = await ctx.stub.getStateByRange('record', 'record~');
+                    let rec = await recordIter.next();
+    
+                    while (!rec.done) {
+                        try {
+                            const record = JSON.parse(rec.value.value.toString());
+    
+                            if (record.doctorId === doctor.doctorId) {
+                                totalRecords++;
+    
+                                // Track unique patients
+                                if (record.patientId) {
+                                    patientSet.add(record.patientId);
+                                }
+                            }
+                        } catch {}
+                        rec = await recordIter.next();
+                    }
+                }
+                doc = await docIterator.next();
+            }
+    
+            // STEP 4 — BUILD OUTPUT FOR THIS HOSPITAL
+            results.push({
+                hospitalId,
+                name: hospital.name,
+                city: hospital.city,
+                totalDoctors,
+                totalPatients: patientSet.size,
+                totalRecords
+            });
+    
+            hosp = await hospitalIterator.next();
+        }
+    
+        return JSON.stringify(results);
     }
     
     

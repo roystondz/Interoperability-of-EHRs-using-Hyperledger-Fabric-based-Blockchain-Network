@@ -24,7 +24,12 @@
 
     const app = express();
     app.use(express.json());
-    app.use(cors());
+    app.use(cors({
+        origin: "http://localhost:5173",
+        credentials: true,
+    }));
+
+   
 
     app.listen(3000, function () {
         console.log('Node SDK server is running on 3000 port');
@@ -267,13 +272,40 @@
 
     app.post('/getAccessList', async (req, res, next) => {
         try {
-            const { hospitalId, patientId } = req.body;
-            const result = await query.getQuery('getAccessList', { patientId }, hospitalId);
-            res.status(200).send({ success: true, data: result });
+            const { userId, patientId } = req.body;
+    
+            if (!userId) {
+                return res.status(400).send({
+                    success: false,
+                    message: "userId is required"
+                });
+            }
+    
+            const result = await query.getQuery("getAccessList", { patientId }, userId);
+    
+            res.status(200).send({
+                success: true,
+                data: result
+            });
         } catch (err) {
             next(err);
         }
     });
+    
+
+    // app.post('/getAccessList', async (req, res, next) => {
+    //     try {
+    //         const { patientId } = req.body;
+    //         Console.log("Patient id : ",patientId)
+    //         // Call chaincode as the actual patient
+    //         const result = await query.getQuery('getAccessList', { patientId }, patientId);
+    
+    //         res.status(200).send({ success: true, data: result });
+    //     } catch (err) {
+    //         next(err);
+    //     }
+    // });
+    
 
     app.post('/getPatientsForDoctor', async (req, res, next) => {
         try {
@@ -286,7 +318,7 @@
         }
     });
 
-    app.get('/getSystemStats', async (req, res, next) => {
+    app.post('/getSystemStats', async (req, res, next) => {
         try {
             const {userId} = req.body;
             const result = await query.getQuery('getSystemStats', {}, userId);
@@ -296,14 +328,25 @@
         }
     });
 
+    app.post('/getHospitalStats', async (req, res, next) => {
+        try {
+            const { userId } = req.body;
+            const result = await query.getQuery('getHospitalStats', null, userId);
+            res.status(200).send({ success: true, data: result });
+        } catch (err) {
+            next(err);
+        }
+    });
+    
+
 // -------------------- Register Hospital --------------------
 app.post('/registerHospital', async (req, res, next) => {
     try {
-        const { adminId, hospitalId, name, city } = req.body;
+        const { adminId, hospitalId, name, city,departments } = req.body;
         if (!adminId || !hospitalId || !name || !city) {
             throw new Error('Missing input data for hospital registration.');
         }
-        const result = await helper.registerHospital(adminId, hospitalId, name, city);
+        const result = await helper.registerHospital(adminId, hospitalId, name, city,departments);
         res.status(200).send(result);
     } catch (err) {
         next(err);
@@ -345,7 +388,6 @@ app.post('/login', async (req, res, next) => {
     try {
         const { userId } = req.body;
         if (!userId) throw new Error('Missing userId');
-
         const result = await helper.login(userId);
         res.status(200).send(result);
     } catch (err) {
