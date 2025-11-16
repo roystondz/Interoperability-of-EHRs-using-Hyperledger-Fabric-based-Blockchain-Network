@@ -307,11 +307,24 @@ class ehrChainCode extends Contract {
         return JSON.stringify({ message: `Record ${recordId} added for patient ${patientId}` });
     }
     
+    async getPatientProfile(ctx) {
+        const patientId = ctx.clientIdentity.getAttributeValue('uuid');
+        const key = `PAT-${patientId}`;
+      
+        const data = await ctx.stub.getState(key);
+      
+        if (!data || data.length === 0) {
+          throw new Error("Patient not found");
+        }
+      
+        return data.toString();   
+      }
+      
 
     async onboardPatient(ctx, args) {
         const { patientId, name, dob, city } = JSON.parse(args);
         const key = `PAT-${patientId}`;
-    
+        const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
         const existing = await ctx.stub.getState(key);
         if (existing && existing.length > 0) {
             throw new Error(`Patient ${patientId} already exists`);
@@ -322,6 +335,7 @@ class ehrChainCode extends Contract {
             name,
             dob,
             city,
+            timestamp,
             authorizedDoctors: []
         };
     
@@ -398,33 +412,46 @@ class ehrChainCode extends Contract {
     
     
 
-    // GetAllAssets returns all assets found in the world state.
     async fetchLedger(ctx) {
-        // call by admin only 
-        const { role, uuid: callerId } = this.getCallerAttributes(ctx);
-
-        if (role !== 'hospital') {
-            throw new Error('Only hospital can fetch blockchain ledger');
+        const { role } = this.getCallerAttributes(ctx);
+        if (role !== "hospital" && role !== "admin") {
+            throw new Error("Unauthorized");
         }
-
+    
         const allResults = [];
-        // range query with empty string for startKey and endKey does an open-ended query of all assets in the chaincode namespace.
-        const iterator = await ctx.stub.getStateByRange('', '');
+        const iterator = await ctx.stub.getStateByRange("", "");
+    
         let result = await iterator.next();
         while (!result.done) {
-            const strValue = Buffer.from(result.value.value.toString()).toString('utf8');
-            let record;
-            try {
-                record = JSON.parse(strValue);
-            } catch (err) {
-                console.log(err);
-                record = strValue;
-            }
-            allResults.push(record);
+    
+            const key = result.value.key.toString();
+            const rawValue = result.value.value.toString("utf8");
+    
+            let parsedValue;
+            try { parsedValue = JSON.parse(rawValue); }
+            catch { parsedValue = rawValue; }
+    
+            // Add type detection
+            let type = "unknown";
+            if (key.startsWith("HOSP-")) type = "hospital";
+            else if (key.startsWith("Doctor-")) type = "doctor";
+            else if (key.startsWith("PAT-")) type = "patient";
+            else if (key.startsWith("record")) type = "record";
+    
+            allResults.push({
+                key,
+                type,
+                value: parsedValue,
+                timestamp: parsedValue.timestamp || null
+            });
+    
             result = await iterator.next();
         }
-        return stringify(allResults);
+    
+        await iterator.close();
+        return JSON.stringify(allResults);
     }
+    
 
     async getHospitalStats(ctx) {
         const results = [];
@@ -610,24 +637,40 @@ class ehrChainCode extends Contract {
 
     async getAccessList(ctx, args) {
         const { patientId } = JSON.parse(args);
-    
         const iterator = await ctx.stub.getStateByPartialCompositeKey('access', [patientId]);
+    
         const result = [];
     
         let res = await iterator.next();
         while (!res.done) {
             const data = JSON.parse(res.value.value.toString());
+            const doctorId = data.doctorId;
+    
+            // Fetch doctor info
+            const doctorKey = `Doctor-${doctorId}`;
+            const doctorJSON = await ctx.stub.getState(doctorKey);
+    
+            let doctorInfo = {};
+            if (doctorJSON && doctorJSON.length > 0) {
+                doctorInfo = JSON.parse(doctorJSON.toString());
+            }
+    
             result.push({
                 doctorId: data.doctorId,
+                doctorName: doctorInfo.name || "Unknown",
+                department: doctorInfo.department || "N/A",
+                hospitalName: doctorInfo.hospitalName || "N/A",
                 hospitalId: data.hospitalId,
                 grantedAt: data.grantedAt
             });
+    
             res = await iterator.next();
         }
     
         await iterator.close();
         return JSON.stringify(result);
     }
+    
     
     
     async getSystemStats(ctx) {
@@ -645,14 +688,14 @@ class ehrChainCode extends Contract {
             records: 0
         };
     
-        // PATIENTS
-        let iterator = await ctx.stub.getStateByRange('Patient-', 'Patient-~');
+        // PATIENTS (Correct prefix)
+        let iterator = await ctx.stub.getStateByRange('PAT-', 'PAT-~');
         for (let it = await iterator.next(); !it.done; it = await iterator.next()) {
             stats.patients++;
         }
         await iterator.close();
     
-        // DOCTORS (Corrected)
+        // DOCTORS
         iterator = await ctx.stub.getStateByRange('Doctor-', 'Doctor-~');
         for (let it = await iterator.next(); !it.done; it = await iterator.next()) {
             stats.doctors++;
@@ -675,6 +718,7 @@ class ehrChainCode extends Contract {
     
         return JSON.stringify(stats);
     }
+    
     
     
     
