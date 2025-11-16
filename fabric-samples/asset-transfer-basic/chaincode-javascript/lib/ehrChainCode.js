@@ -629,11 +629,37 @@ class ehrChainCode extends Contract {
     
     
 
-    async revokeAccess(ctx, patientId, doctorId) {
-        const accessKey = ctx.stub.createCompositeKey('access', [patientId, doctorId]);
+    async revokeAccess(ctx, args) {
+        const { patientId, doctorId } = JSON.parse(args);
+    
+        if (!patientId || !doctorId) {
+            throw new Error("Missing patientId or doctorId");
+        }
+    
+        const { role, uuid } = this.getCallerAttributes(ctx);
+        if (role !== "patient") {
+            throw new Error("Only patient can revoke access");
+        }
+    
+        if (uuid !== patientId) {
+            throw new Error("Caller not authorized");
+        }
+    
+        const accessKey = ctx.stub.createCompositeKey("access", [patientId, doctorId]);
         await ctx.stub.deleteState(accessKey);
+    
+        // Also remove from patient.authorizedDoctors
+        const patientKey = `PAT-${patientId}`;
+        const patientJSON = await ctx.stub.getState(patientKey);
+        const patient = JSON.parse(patientJSON.toString());
+    
+        patient.authorizedDoctors = patient.authorizedDoctors.filter(id => id !== doctorId);
+    
+        await ctx.stub.putState(patientKey, Buffer.from(JSON.stringify(patient)));
+    
         return JSON.stringify({ message: "Access revoked" });
     }
+    
 
     async getAccessList(ctx, args) {
         const { patientId } = JSON.parse(args);
