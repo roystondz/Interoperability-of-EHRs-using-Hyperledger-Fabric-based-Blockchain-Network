@@ -145,6 +145,23 @@ $ node app.js
 $ ./network.sh down
 ```
 
+## 📌 Frontend Repository
+
+The frontend for this Electronic Health Records (EHR) project is available at the link below:
+
+🔗 **Frontend UI Repository:**  
+https://github.com/roystondz/blockchain-frontend
+
+This repository contains the full React-based user interface for all roles:
+- Admin  
+- Hospital  
+- Doctor  
+- Patient  
+
+It includes authentication, role-based access control, dashboard components, and API integration with the Fabric blockchain backend.
+
+Make sure to clone both the backend and frontend repositories and configure environment variables properly for smooth setup.
+
 
 
 
