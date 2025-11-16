@@ -347,11 +347,24 @@ app.post('/registerHospital', async (req, res, next) => {
             throw new Error('Missing input data for hospital registration.');
         }
         const result = await helper.registerHospital(adminId, hospitalId, name, city,departments);
-        res.status(200).send(result);
+        res.status(200).send({success: true,result:result});
     } catch (err) {
         next(err);
     }
 });
+
+app.post('/getPatientProfile', async (req, res, next) => {
+    try {
+      const { userId } = req.body;
+  
+      const result = await query.getQuery('getPatientProfile', {}, userId);
+  
+      res.status(200).send({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
 
 // -------------------- Register Doctor --------------------
 app.post('/registerDoctor', async (req, res, next) => {
@@ -362,7 +375,7 @@ app.post('/registerDoctor', async (req, res, next) => {
         }
 
         const result = await helper.registerDoctor(hospitalId, doctorId, hospitalName, name, department, city);
-        res.status(200).send(result);
+        res.status(200).send({success:true,result:result});
     } catch (err) {
         next(err);
     }
@@ -377,7 +390,7 @@ app.post('/registerPatient', async (req, res, next) => {
         }
 
         const result = await helper.registerPatient(hospitalId, patientId, hospitalName, name, dob, city);
-        res.status(200).send(result);
+        res.status(200).send({success:true,result:result});
     } catch (err) {
         next(err);
     }
@@ -389,7 +402,7 @@ app.post('/login', async (req, res, next) => {
         const { userId } = req.body;
         if (!userId) throw new Error('Missing userId');
         const result = await helper.login(userId);
-        res.status(200).send(result);
+        res.status(200).send({success: true,result:result});
     } catch (err) {
         next(err);
     }
