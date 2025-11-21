@@ -408,7 +408,64 @@ app.post('/login', async (req, res, next) => {
     }
 });
 
+app.get('/getBlockchainInfo', async (req, res) => {
+    try {
+      // Load Fabric connection
+      const { Gateway, Wallets } = require("fabric-network");
+      const path = require("path");
+      const fs = require("fs");
+  
+      // Path to connection profile
+      const ccpPath = path.resolve(__dirname, "connection.json");
+      const ccp = JSON.parse(fs.readFileSync(ccpPath, "utf8"));
+  
+      // Load wallet
+      const wallet = await Wallets.newFileSystemWallet(path.join(__dirname, "wallet"));
+  
+      // Your admin or doctor identity
+      const identity = "admin"; // change if needed
+  
+      // Connect gateway
+      const gateway = new Gateway();
+      await gateway.connect(ccp, {
+        wallet,
+        identity,
+        discovery: { enabled: true, asLocalhost: true }
+      });
+  
+      const network = await gateway.getNetwork("mychannel");
+  
+      // Get blockchain info
+      const blockchainInfo = await network.getChannel().queryInfo();
+  
+      // Get latest block
+      const latestBlockNumber = blockchainInfo.height.low - 1;
+      const latestBlock = await network.getChannel().queryBlock(latestBlockNumber);
+  
+      await gateway.disconnect();
+  
+      return res.json({
+        success: true,
+        message: "Blockchain info fetched successfully",
+        blockchain: {
+          height: blockchainInfo.height.low,
+          currentBlockHash: blockchainInfo.currentBlockHash.toString("hex"),
+          previousBlockHash: blockchainInfo.previousBlockHash.toString("hex"),
+          latestBlockNumber,
+          latestBlock
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching blockchain info:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch blockchain info",
+        error: error.message
+      });
+    }
+  });
 
+  
     app.use((err, req, res, next) => {
         res.status(400).send(err.message);
     })
