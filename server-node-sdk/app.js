@@ -366,6 +366,32 @@ app.post('/getPatientProfile', async (req, res, next) => {
   });
   
 
+
+  app.post('/getDoctorInfo', async (req, res, next) => {
+    try {
+        const { userId, doctorId } = req.body;
+
+        if (!doctorId) {
+            return res.status(400).send({
+                success: false,
+                message: "doctorId is required"
+            });
+        }
+
+        const result = await query.getQuery(
+            'getDoctorInfo',
+            { doctorId },
+            userId
+        );
+
+        res.status(200).send({ success: true, data: result });
+
+    } catch (err) {
+        next(err);
+    }
+});
+
+
 // -------------------- Register Doctor --------------------
 app.post('/registerDoctor', async (req, res, next) => {
     try {
