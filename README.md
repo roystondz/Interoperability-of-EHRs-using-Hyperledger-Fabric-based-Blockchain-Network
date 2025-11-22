@@ -163,30 +163,65 @@ It includes authentication, role-based access control, dashboard components, and
 Make sure to clone both the backend and frontend repositories and configure environment variables properly for smooth setup.
 
 
-
-
 > Run the commands as specified
 
 # API Enpoints
 
-| **Method** | **Endpoint**                | **Description**                          | **Role**         | **Parameters (Body / Query)**                                          |
-| ---------- | --------------------------- | ---------------------------------------- | ---------------- | ---------------------------------------------------------------------- |
-| `GET`      | `/status`                   | Check server status                      | Public           | –                                                                      |
-| `POST`     | `/registerHospital`         | Register a new hospital                  | HospitalAdmin    | `adminId`, `hospitalId`, `name`, `city`                                |
-| `POST`     | `/registerDoctor`           | Register a new doctor                    | Hospital         | `hospitalId`, `doctorId`, `hospitalName`, `name`, `department`, `city` |
-| `POST`     | `/registerPatient`          | Register a new patient                   | Doctor           | `doctorId`, `patientId`, `hospitalName`, `name`, `dob`, `city`         |
-| `POST`     | `/login`                    | Login as a user                          | Any              | `userId`                                                               |
-| `POST`     | `/addRecord`                | Add a medical record                     | Doctor           | `doctorId`, `patientId`, `diagnosis`, `prescription`                   |
-| `POST`     | `/getAllRecordsByPatientId` | Fetch all records of a patient           | Doctor / Patient | `userId`, `patientId`                                                  |
-| `POST`     | `/getRecordById`            | Get a specific medical record            | Doctor / Patient | `userId`, `patientId`, `recordId`                                      |
-| `POST`     | `/queryHistoryOfAsset`      | View record history                      | Doctor / Patient | `userId`, `recordId`                                                   |
-| `POST`     | `/grantAccess`              | Grant doctor access to records           | Patient          | `patientId`, `doctorIdToGrant`, `hospitalId`                           |
-| `POST`     | `/revokeAccess`             | Revoke doctor's access                   | Patient          | `userId`, `patientId`, `doctorId`                                      |
-| `POST`     | `/getAccessList`            | List doctors with access                 | Patient          | `userId`, `patientId`                                                  |
-| `POST`     | `/getPatientsForDoctor`     | List all patients a doctor has access to | Doctor           | `doctorId`                                                             |
-| `POST`     | `/updatePatientProfile`     | Update patient profile                   | Patient          | `userId`, `name`, `dob`, `city`                                        |
-| `POST`     | `/fetchLedger`              | View full ledger (audit)                 | Admin            | `userId`                                                               |
-| `GET`      | `/getSystemStats`           | View system-wide stats                   | Admin            | `userId` *(as query param)*                                            |
+## 🔐 1. Authentication
+| Method | Endpoint | Description                                   | Role | Body Parameters |
+| ------ | -------- | --------------------------------------------- | ---- | --------------- |
+| `POST` | `/login` | Authenticate user & load identity from wallet | Any  | `userId`        |
+
+## 🏥 2. Hospital Management
+| Method | Endpoint            | Description                       | Role          | Body Parameters                         |
+| ------ | ------------------- | --------------------------------- | ------------- | --------------------------------------- |
+| `POST` | `/registerHospital` | Register & onboard a new hospital | HospitalAdmin | `adminId`, `hospitalId`, `name`, `city` |
+
+## 👨‍⚕️ 3. Doctor Management
+| Method | Endpoint                | Description                                  | Role     | Body Parameters                                                        |
+| ------ | ----------------------- | -------------------------------------------- | -------- | ---------------------------------------------------------------------- |
+| `POST` | `/registerDoctor`       | Register & onboard a doctor under a hospital | Hospital | `hospitalId`, `doctorId`, `hospitalName`, `name`, `department`, `city` |
+| `POST` | `/getDoctorInfo`        | Fetch logged-in doctor’s profile             | Doctor   | `userId`, `doctorId`                                                   |
+| `POST` | `/getPatientsForDoctor` | Get patients the doctor has access to        | Doctor   | `doctorId`                                                             |
+
+## 🧑‍🤝‍🧑 4. Patient Management
+| Method | Endpoint                | Description                      | Role    | Body Parameters                                                |
+| ------ | ----------------------- | -------------------------------- | ------- | -------------------------------------------------------------- |
+| `POST` | `/registerPatient`      | Register & onboard a new patient | Doctor  | `doctorId`, `patientId`, `hospitalName`, `name`, `dob`, `city` |
+| `POST` | `/updatePatientProfile` | Update patient profile data      | Patient | `userId`, `name`, `dob`, `city`                                |
+
+## 📄 5. Medical Records Management
+| Method | Endpoint                    | Description                              | Role             | Body Parameters                                                       |
+| ------ | --------------------------- | ---------------------------------------- | ---------------- | --------------------------------------------------------------------- |
+| `POST` | `/addRecord`                | Add a new medical record for a patient   | Doctor           | `doctorId`, `patientId`, `diagnosis`, `prescription`, `report (file)` |
+| `POST` | `/getAllRecordsByPatientId` | Get all medical records for a patient    | Doctor / Patient | `userId`, `patientId`                                                 |
+| `POST` | `/getRecordById`            | Get a specific medical record            | Doctor / Patient | `userId`, `patientId`, `recordId`                                     |
+| `POST` | `/queryHistoryOfAsset`      | View complete record history (audit log) | Doctor / Patient | `userId`, `recordId`                                                  |
+
+## 🔐 6. Access Control (Patient → Doctor)
+| Method | Endpoint         | Description                                | Role    | Body Parameters                              |
+| ------ | ---------------- | ------------------------------------------ | ------- | -------------------------------------------- |
+| `POST` | `/grantAccess`   | Grant a doctor access to medical records   | Patient | `patientId`, `doctorIdToGrant`, `hospitalId` |
+| `POST` | `/revokeAccess`  | Revoke access previously granted           | Patient | `userId`, `patientId`, `doctorId`            |
+| `POST` | `/getAccessList` | List all doctors who currently have access | Patient | `userId`, `patientId`                        |
+
+## 🧾 7. Ledger & System Information
+| Method | Endpoint             | Description                                 | Role        | Params             |
+| ------ | -------------------- | ------------------------------------------- | ----------- | ------------------ |
+| `POST` | `/fetchLedger`       | Fetch full ledger for audit (admin only)    | Admin       | `userId`           |
+| `GET`  | `/getSystemStats`    | View system-wide statistics                 | Admin       | `userId` *(Query)* |
+| `GET`  | `/getBlockchainInfo` | Get blockchain height, latest block, hashes | Admin / Dev | –                  |
+
+## 🟢 8. Utility Endpoints
+| Method | Endpoint  | Description           | Public? | Params |
+| ------ | --------- | --------------------- | ------- | ------ |
+| `GET`  | `/status` | Backend health status | ✔ Yes   | –      |
+
+#### Notes
+> All Hyperledger Fabric network interactions use wallet identities.
+> Upload endpoints must use multipart/form-data.
+> Role permissions are enforced in both backend & chaincode.
+> Query operations use QSCC for blockchain info.
 
 
 ## Incase of containers not forming in docker
