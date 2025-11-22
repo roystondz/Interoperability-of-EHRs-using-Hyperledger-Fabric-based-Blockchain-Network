@@ -68,6 +68,7 @@ class ehrChainCode extends Contract {
             name,
             city,
             department,
+            status:'active',
             timestamp: ctx.stub.getTxTimestamp().seconds.low.toString()
         };
     
@@ -87,7 +88,7 @@ class ehrChainCode extends Contract {
             throw new Error(`Hospital ${hospitalId} already exists`);
         }
     
-        const hospital = { hospitalId, name, city, departments, timestamp: ctx.stub.getTxTimestamp().seconds.low.toString() };
+        const hospital = { hospitalId, name, city, departments,status:'active', timestamp: ctx.stub.getTxTimestamp().seconds.low.toString() };
         await ctx.stub.putState(key, Buffer.from(JSON.stringify(hospital)));
         return JSON.stringify(hospital);
     }
@@ -336,7 +337,7 @@ class ehrChainCode extends Contract {
       
 
     async onboardPatient(ctx, args) {
-        const { patientId, name, dob, city } = JSON.parse(args);
+        const { patientId, name, dob, city,mobile } = JSON.parse(args);
         const key = `PAT-${patientId}`;
         const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
         const existing = await ctx.stub.getState(key);
@@ -349,6 +350,8 @@ class ehrChainCode extends Contract {
             name,
             dob,
             city,
+            mobile,
+            status:'active',
             timestamp,
             authorizedDoctors: []
         };
