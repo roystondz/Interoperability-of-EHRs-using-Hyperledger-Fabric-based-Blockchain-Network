@@ -410,7 +410,7 @@ app.post('/registerDoctor', async (req, res, next) => {
 // -------------------- Register Patient --------------------
 app.post('/registerPatient', async (req, res, next) => {
     try {
-        const { hospitalId, patientId, hospitalName, name, dob, city } = req.body;
+        const { hospitalId, patientId, hospitalName, name, dob, city ,mobile} = req.body;
         if (!hospitalId || !patientId || !hospitalName || !name || !dob || !city) {
             throw new Error('Missing input data for patient registration.');
         }
