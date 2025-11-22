@@ -379,7 +379,7 @@ app.post('/getPatientProfile', async (req, res, next) => {
         }
 
         const result = await query.getQuery(
-            'getDoctorInfo',
+            'getDoctor',
             { doctorId },
             userId
         );
@@ -436,37 +436,42 @@ app.post('/login', async (req, res, next) => {
 
 app.get('/getBlockchainInfo', async (req, res) => {
     try {
-      // Load Fabric connection
       const { Gateway, Wallets } = require("fabric-network");
       const path = require("path");
       const fs = require("fs");
+      const fabprotos = require("fabric-protos");
   
-      // Path to connection profile
-      const ccpPath = path.resolve(__dirname, "connection.json");
+      const ccpPath = path.resolve(
+        __dirname,
+        "..",
+        "fabric-samples",
+        "test-network",
+        "organizations",
+        "peerOrganizations",
+        "org1.example.com",
+        "connection-org1.json"
+      );
+  
       const ccp = JSON.parse(fs.readFileSync(ccpPath, "utf8"));
-  
-      // Load wallet
       const wallet = await Wallets.newFileSystemWallet(path.join(__dirname, "wallet"));
+      const identity = "HOSP-01";
   
-      // Your admin or doctor identity
-      const identity = "admin"; // change if needed
-  
-      // Connect gateway
       const gateway = new Gateway();
-      await gateway.connect(ccp, {
-        wallet,
-        identity,
-        discovery: { enabled: true, asLocalhost: true }
-      });
+      await gateway.connect(ccp, { wallet, identity, discovery: { enabled: true, asLocalhost: true } });
   
       const network = await gateway.getNetwork("mychannel");
+      const qscc = network.getContract("qscc");
   
-      // Get blockchain info
-      const blockchainInfo = await network.getChannel().queryInfo();
+      // 1️⃣ Get chain info
+      const chainInfoBytes = await qscc.evaluateTransaction("GetChainInfo", "mychannel");
+      const chainInfo = fabprotos.common.BlockchainInfo.decode(chainInfoBytes);
   
-      // Get latest block
-      const latestBlockNumber = blockchainInfo.height.low - 1;
-      const latestBlock = await network.getChannel().queryBlock(latestBlockNumber);
+      const height = chainInfo.height.toNumber();
+      const latestBlockNumber = height - 1;
+  
+      // 2️⃣ Get latest block
+      const blockBytes = await qscc.evaluateTransaction("GetBlockByNumber", "mychannel", latestBlockNumber.toString());
+      const latestBlock = fabprotos.common.Block.decode(blockBytes);
   
       await gateway.disconnect();
   
@@ -474,13 +479,14 @@ app.get('/getBlockchainInfo', async (req, res) => {
         success: true,
         message: "Blockchain info fetched successfully",
         blockchain: {
-          height: blockchainInfo.height.low,
-          currentBlockHash: blockchainInfo.currentBlockHash.toString("hex"),
-          previousBlockHash: blockchainInfo.previousBlockHash.toString("hex"),
+          height,
+          currentBlockHash: chainInfo.currentBlockHash.toString("hex"),
+          previousBlockHash: chainInfo.previousBlockHash.toString("hex"),
           latestBlockNumber,
           latestBlock
         }
       });
+  
     } catch (error) {
       console.error("Error fetching blockchain info:", error);
       return res.status(500).json({
@@ -490,7 +496,7 @@ app.get('/getBlockchainInfo', async (req, res) => {
       });
     }
   });
-
+  
   
     app.use((err, req, res, next) => {
         res.status(400).send(err.message);

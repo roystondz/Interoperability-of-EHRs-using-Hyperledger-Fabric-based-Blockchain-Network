@@ -268,6 +268,20 @@ class ehrChainCode extends Contract {
     //     return `Patient ${patientId} registered`;
     // }
 
+    async getDoctor(ctx, args) {
+        const { doctorId } = JSON.parse(args);
+        const key = `Doctor-${doctorId}`;
+        const doctorJSON = await ctx.stub.getState(key);
+      
+        if (!doctorJSON || doctorJSON.length === 0) {
+          throw new Error(`Doctor ${doctorId} not found`);
+        }
+      
+        return doctorJSON.toString();
+      }
+      
+
+
     async addRecord(ctx, args) {
         const { patientId, diagnosis, prescription, reportHash } = JSON.parse(args);
         const { role, uuid: callerId } = this.getCallerAttributes(ctx);
