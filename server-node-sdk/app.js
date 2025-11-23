@@ -231,6 +231,63 @@
         }
     });
 
+    // Doctor -> request access
+app.post('/doctor/requestAccess', async (req, res, next) => {
+    try {
+      const { doctorId, patientId, hospitalId, reason } = req.body;
+      const result = await invoke.invokeTransaction('requestAccess', { doctorId, patientId, hospitalId, reason }, doctorId);
+      res.status(200).send({ success: true, result });
+    } catch (err) { next(err); }
+  });
+
+  // Get ALL patients (doctor search)
+  app.get("/getAllPatients", async (req, res, next) => {
+    try {
+      const result = await query.getQuery("getAllPatients", {}, "DOC-0101");
+      res.status(200).send({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  
+  app.post('/doctor/checkAccess', async (req, res, next) => {
+    try {
+      const { doctorId, patientId } = req.body;
+  
+      const result = await query.getQuery(
+        "checkDoctorAccess",
+        { doctorId, patientId },
+        doctorId
+      );
+  
+      res.status(200).send({ success: true, access: result });
+  
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  
+  // Patient -> list requests
+  app.post('/patient/getAccessRequests', async (req, res, next) => {
+    try {
+      const { patientId } = req.body;
+      const result = await query.getQuery('getAccessRequests', { patientId }, patientId);
+      res.status(200).send({ success: true, data: result });
+    } catch (err) { next(err); }
+  });
+  
+  // Patient -> approve/reject
+  app.post('/patient/updateAccessRequest', async (req, res, next) => {
+    try {
+      const { patientId, doctorId, requestId, action } = req.body;
+      const result = await invoke.invokeTransaction('updateAccessRequest', { patientId, doctorId, requestId, action }, patientId);
+      res.status(200).send({ success: true, result });
+    } catch (err) { next(err); }
+  });
+  
+
     app.post('/grantAccess', async function (req, res, next){
         try {
             // call this from patient 
@@ -443,16 +500,61 @@ app.post('/registerPatient', async (req, res, next) => {
 });
 
 // -------------------- Login --------------------
+// app.post('/login', async (req, res, next) => {
+//     try {
+//         const { userId } = req.body;
+//         if (!userId) throw new Error('Missing userId');
+//         const result = await helper.login(userId);
+//         res.status(200).send({success: true,result:result});
+//     } catch (err) {
+//         next(err);
+//     }
+// });
+
 app.post('/login', async (req, res, next) => {
     try {
-        const { userId } = req.body;
-        if (!userId) throw new Error('Missing userId');
-        const result = await helper.login(userId);
-        res.status(200).send({success: true,result:result});
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).send({ success: false, message: "Missing userId" });
+      }
+  
+      const { Wallets } = require("fabric-network");
+      const path = require("path");
+  
+      const walletPath = path.join(process.cwd(), "wallet");
+      const wallet = await Wallets.newFileSystemWallet(walletPath);
+  
+      // 🔍 Check if identity exists
+      const identity = await wallet.get(userId);
+  
+      if (!identity) {
+        return res.status(404).send({
+          success: false,
+          message: `User ${userId} does NOT exist in wallet`
+        });
+      }
+  
+      // 🔥 Extract role from X509 attributes
+      const certificate = identity.credentials.certificate;
+      
+      let role = "unknown";
+      if (certificate.includes("role=doctor")) role = "doctor";
+      if (certificate.includes("role=hospital")) role = "hospital";
+      if (certificate.includes("role=patient")) role = "patient";
+      if (certificate.includes("role=admin")) role = "admin";
+  
+      return res.status(200).send({
+        success: true,
+        message: "Login successful",
+        userId,
+        role
+      });
+  
     } catch (err) {
-        next(err);
+      next(err);
     }
-});
+  });
+  
 
 app.get('/getBlockchainInfo', async (req, res) => {
     try {

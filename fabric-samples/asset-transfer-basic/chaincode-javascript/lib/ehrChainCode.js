@@ -830,7 +830,179 @@ class ehrChainCode extends Contract {
     }
     
     
-    
+    /**
+ * Doctor requests access to a patient's records.
+ * args: JSON string { patientId, doctorId, hospitalId, reason }
+ * - role: must be 'doctor' (from cert attribute)
+ */
+async requestAccess(ctx, args) {
+    const { patientId, doctorId, hospitalId, reason } = JSON.parse(args);
+    const { role, uuid: callerId } = this.getCallerAttributes(ctx);
+  
+    if (role !== 'doctor') {
+      throw new Error('Only doctors can request access');
+    }
+    // callerId must match doctorId in cert (optional but recommended)
+    if (callerId !== doctorId) {
+      throw new Error('Doctor certificate does not match doctorId');
+    }
+  
+    // prevent duplicate pending request from same doctor (optional)
+    // we'll still allow historical requests, but check for pending ones:
+    const existingIt = await ctx.stub.getStateByPartialCompositeKey('accessRequest', [patientId, doctorId]);
+    let existing = await existingIt.next();
+    while (!existing.done) {
+      if (existing.value && existing.value.value) {
+        const obj = JSON.parse(existing.value.value.toString('utf8'));
+        if (obj.status === 'pending') {
+          throw new Error('A pending request from this doctor already exists');
+        }
+      }
+      existing = await existingIt.next();
+    }
+    await existingIt.close();
+  
+    const txId = ctx.stub.getTxID();
+    const requestKey = ctx.stub.createCompositeKey('accessRequest', [patientId, doctorId, txId]);
+  
+    const requestObj = {
+      requestId: txId,
+      patientId,
+      doctorId,
+      hospitalId,
+      reason: reason || '',
+      requester: callerId,
+      status: 'pending',     // pending | approved | rejected
+      createdAt: new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString()
+    };
+  
+    await ctx.stub.putState(requestKey, Buffer.from(JSON.stringify(requestObj)));
+    return JSON.stringify({ message: 'Access request submitted', request: requestObj });
+  }
+  
+  /**
+   * Patient lists pending/handled requests.
+   * args: JSON string { patientId }
+   * Note: we use patientId from args so admin/hospital UIs can also list requests (but you may restrict)
+   */
+  async getAccessRequests(ctx, args) {
+    const { patientId } = JSON.parse(args);
+    const iterator = await ctx.stub.getStateByPartialCompositeKey('accessRequest', [patientId]);
+    const results = [];
+  
+    let res = await iterator.next();
+    while (!res.done) {
+      if (res.value && res.value.value) {
+        try {
+          results.push(JSON.parse(res.value.value.toString('utf8')));
+        } catch (e) {
+          // skip parse error
+        }
+      }
+      res = await iterator.next();
+    }
+    await iterator.close();
+    return JSON.stringify(results);
+  }
+  
+  /**
+   * Patient approves or rejects a specific request.
+   * args: JSON string { patientId, doctorId, requestId, action } where action = "approved"|"rejected"
+   *
+   * On approve -> create 'access' composite key and update patient's authorizedDoctors (maintain same logic as grantAccess)
+   */
+  async updateAccessRequest(ctx, args) {
+    const { patientId, doctorId, requestId, action } = JSON.parse(args);
+    const { role, uuid: callerId } = this.getCallerAttributes(ctx);
+  
+    if (role !== 'patient') throw new Error('Only patients can update requests');
+    if (callerId !== patientId) throw new Error('Caller is not the patient owner');
+  
+    if (!['approved', 'rejected'].includes(action)) throw new Error('Invalid action');
+  
+    // find request (composite key includes requestId as third attribute)
+    const requestKey = ctx.stub.createCompositeKey('accessRequest', [patientId, doctorId, requestId]);
+    const requestBytes = await ctx.stub.getState(requestKey);
+    if (!requestBytes || requestBytes.length === 0) throw new Error('Request not found');
+  
+    const requestObj = JSON.parse(requestBytes.toString('utf8'));
+    if (requestObj.status !== 'pending') {
+      throw new Error('Request already handled');
+    }
+  
+    requestObj.status = action;
+    requestObj.handledAt = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
+    requestObj.handledBy = callerId;
+  
+    await ctx.stub.putState(requestKey, Buffer.from(JSON.stringify(requestObj)));
+  
+    if (action === 'approved') {
+      // create access composite key (same pattern as your grantAccess)
+      const accessKey = ctx.stub.createCompositeKey('access', [patientId, doctorId]);
+      const accessData = {
+        doctorId,
+        hospitalId: requestObj.hospitalId || null,
+        grantedAt: new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString(),
+        grantedByRequestId: requestId
+      };
+  
+      await ctx.stub.putState(accessKey, Buffer.from(JSON.stringify(accessData)));
+  
+      // add to patient's authorizedDoctors array if not present
+      const patientKey = `PAT-${patientId}`;
+      const patientBytes = await ctx.stub.getState(patientKey);
+      if (!patientBytes || patientBytes.length === 0) throw new Error('Patient not found');
+  
+      const patient = JSON.parse(patientBytes.toString('utf8'));
+      if (!Array.isArray(patient.authorizedDoctors)) patient.authorizedDoctors = [];
+      if (!patient.authorizedDoctors.includes(doctorId)) {
+        patient.authorizedDoctors.push(doctorId);
+        await ctx.stub.putState(patientKey, Buffer.from(JSON.stringify(patient)));
+      }
+    }
+  
+    return JSON.stringify({ message: `Request ${action}` , request: requestObj });
+  }
+
+  async getAllPatients(ctx) {
+    const startKey = "PAT-";
+    const endKey = "PAT-~";
+
+    const iterator = await ctx.stub.getStateByRange(startKey, endKey);
+    const patients = [];
+
+    let result = await iterator.next();
+    while (!result.done) {
+        if (result.value && result.value.value) {
+            try {
+                const patient = JSON.parse(result.value.value.toString());
+                patients.push({
+                    patientId: patient.patientId,
+                    name: patient.name,
+                    dob: patient.dob,
+                    city: patient.city
+                });
+            } catch (e) {}
+        }
+        result = await iterator.next();
+    }
+
+    await iterator.close();
+    return JSON.stringify(patients);
+}
+
+
+async checkDoctorAccess(ctx, doctorId, patientId) {
+    const patientBytes = await ctx.stub.getState(patientId);
+    if (!patientBytes || !patientBytes.length) return false;
+
+    const patient = JSON.parse(patientBytes.toString());
+
+    if (!patient.accessList) return false;
+
+    return patient.accessList.includes(doctorId);   // true / false
+}
+
     
 
     // get patient details by id

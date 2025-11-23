@@ -824,6 +824,22 @@ class ehrChainCode extends Contract {
         return doctorJSON.toString();
       }
       
+      async getAllPatients(ctx) {
+        const iterator = await ctx.stub.getStateByRange("", "");
+        const results = [];
+    
+        while (true) {
+            const res = await iterator.next();
+            if (res.value && res.value.value.toString()) {
+                const obj = JSON.parse(res.value.value.toString());
+                if (obj.patientId) results.push(obj);
+            }
+            if (res.done) break;
+        }
+    
+        return results;
+    }
+    
     
     
 
