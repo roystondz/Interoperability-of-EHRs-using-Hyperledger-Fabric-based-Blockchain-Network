@@ -24,21 +24,41 @@
 
     const app = express();
     app.use(express.json());
+    // app.use(cors({
+    //     origin: "*",
+    //     credentials: true,
+    // }));
+
     app.use(cors({
-        origin: "http://localhost:5173",
+        origin: (origin, callback) => {
+            callback(null, origin || "*");
+        },
         credentials: true,
     }));
+    
+    // const https = require('https');
 
+    // const httpsOptions = {
+    // key: fs.readFileSync('./server.key'),
+    // cert: fs.readFileSync('./server.cert')
+    // };
    
 
-    app.listen(3000, function () {
-        console.log('Node SDK server is running on 3000 port');
+    // https.createServer(httpsOptions, app).listen(3000, () => {
+    //     console.log("🚀 HTTPS Backend running at https://localhost:3000");
+    //   });
+    
+    app.listen(3000, () => {
+        console.log("🚀 HTTP Backend running at http://localhost:3000");
     });
 
     app.get('/status', async function (req, res, next) {
         res.send("Server is up.");
-    })
+    });
 
+    app.get('/', async function (req, res, next) {
+        res.status(200).send("Welcome to EHR Blockchain Network");
+    });
 
     // app.post('/registerPatient', async function (req, res, next) {
     //     try {
