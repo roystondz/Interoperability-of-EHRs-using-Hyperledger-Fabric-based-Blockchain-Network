@@ -213,7 +213,7 @@ Make sure to clone both the backend and frontend repositories and configure envi
 | `GET`  | `/getBlockchainInfo` | Get blockchain height, latest block, hashes | Admin / Dev | –                  |
 
 ## 🟢 8. Utility Endpoints
-| Method | Endpoint  | Description           | Public? | Params |
+| Method | Endpoint  | Description           | Public | Params |
 | ------ | --------- | --------------------- | ------- | ------ |
 | `GET`  | `/status` | Backend health status | ✔ Yes   | –      |
 
