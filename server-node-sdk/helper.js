@@ -167,7 +167,7 @@ const registerDoctor = async (hospitalId, doctorId, hospitalName, name, departme
 };
 
 // 3️⃣ Register & Enroll Patient (by Doctor)
-const registerPatient = async (hospitalId, patientId, hospitalName, name, dob, city) => {
+const registerPatient = async (hospitalId, patientId, hospitalName, name, dob, city,mobile,gender,breakGlassConsent) => {
     const ccp = loadCCP();
     const ca = getCAClient(ccp);
     const wallet = await getWallet();
@@ -221,7 +221,7 @@ const registerPatient = async (hospitalId, patientId, hospitalName, name, dob, c
     const network = await gateway.getNetwork(CHANNEL_NAME);
     const contract = network.getContract(CHAINCODE_NAME);
 
-    const res = await contract.submitTransaction('onboardPatient', JSON.stringify({ patientId, hospitalName, name, dob, city }));
+    const res = await contract.submitTransaction('onboardPatient', JSON.stringify({ patientId, hospitalName, name, dob, city,mobile,gender,breakGlassConsent }));
     gateway.disconnect();
 
     return { message: `Patient ${patientId} registered and onboarded successfully`, chaincodeRes: res.toString() };
@@ -235,4 +235,77 @@ const login = async (userId) => {
     return { message: `User ${userId} login successful`, userId };
 };
 
-module.exports = { registerHospital, registerDoctor, registerPatient, login };
+const createEmergencyRequest = async (doctorId, patientId, reason) => {
+    const ccp = loadCCP();
+    const wallet = await getWallet();
+
+    // Verify doctor identity
+    if (!await wallet.get(doctorId)) {
+        throw new Error(`Doctor ${doctorId} not found`);
+    }
+
+    const gateway = new Gateway();
+    await gateway.connect(ccp, {
+        wallet,
+        identity: doctorId,
+        discovery: { enabled: true, asLocalhost: true }
+    });
+
+    const network = await gateway.getNetwork(CHANNEL_NAME);
+    const contract = network.getContract(CHAINCODE_NAME);
+
+    const requestId = `ER_${Date.now()}`;
+
+    const res = await contract.submitTransaction(
+        'createEmergencyRequest',
+        JSON.stringify({
+            requestId,
+            doctorId,
+            patientId,
+            reason
+        })
+    );
+
+    gateway.disconnect();
+
+    return {
+        message: 'Emergency request submitted and sent to hospital admin',
+        requestId,
+        status: 'PENDING',
+        chaincodeRes: res.toString()
+    };
+};
+
+const approveEmergencyRequest = async (adminId, requestId) => {
+    const ccp = loadCCP();
+    const wallet = await getWallet();
+
+    if (!await wallet.get(adminId)) {
+        throw new Error(`Admin ${adminId} not found`);
+    }
+
+    const gateway = new Gateway();
+    await gateway.connect(ccp, {
+        wallet,
+        identity: adminId,
+        discovery: { enabled: true, asLocalhost: true }
+    });
+
+    const network = await gateway.getNetwork(CHANNEL_NAME);
+    const contract = network.getContract(CHAINCODE_NAME);
+
+    const res = await contract.submitTransaction(
+        'approveEmergencyRequest',
+        requestId
+    );
+
+    gateway.disconnect();
+
+    return {
+        message: 'Emergency request approved',
+        requestId,
+        chaincodeRes: res.toString()
+    };
+};
+
+module.exports = { registerHospital, registerDoctor, registerPatient, login ,createEmergencyRequest,approveEmergencyRequest};

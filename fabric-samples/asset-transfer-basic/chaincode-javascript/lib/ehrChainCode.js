@@ -337,7 +337,7 @@ class ehrChainCode extends Contract {
       
 
     async onboardPatient(ctx, args) {
-        const { patientId, name, dob, city,mobile } = JSON.parse(args);
+        const { patientId, name, dob, city,mobile,gender,breakGlassConsent} = JSON.parse(args);
         const key = `PAT-${patientId}`;
         const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
         const existing = await ctx.stub.getState(key);
@@ -351,6 +351,8 @@ class ehrChainCode extends Contract {
             dob,
             city,
             mobile,
+            gender,
+            breakGlassConsent,
             status:'active',
             timestamp,
             authorizedDoctors: []
@@ -426,8 +428,170 @@ class ehrChainCode extends Contract {
     }
     
     
-    
-    
+   async createEmergencyRequest(ctx, payload) {
+    const { doctorId, patientId, hospitalId, reason } = JSON.parse(payload);
+
+    if (ctx.clientIdentity.getAttributeValue('role') !== 'doctor') {
+        throw new Error('Only doctors can create emergency requests');
+    }
+
+    const patientKey = `PAT-${patientId}`;
+    const patientBytes = await ctx.stub.getState(patientKey);
+    if (!patientBytes || patientBytes.length === 0) {
+        throw new Error('Patient not found');
+    }
+
+    const patient = JSON.parse(patientBytes.toString());
+    if (patient.breakGlassConsent !== true) {
+        throw new Error('Patient has not enabled break-glass consent');
+    }
+
+    // ✅ DETERMINISTIC TIMESTAMP
+    const txTime = ctx.stub.getTxTimestamp();
+    const createdAt = new Date(txTime.seconds.low * 1000).toISOString();
+
+    const requestId = `ER_${ctx.stub.getTxID()}`;
+
+    const request = {
+        requestId,
+        doctorId,
+        patientId,
+        hospitalId,
+        reason,
+        status: 'PENDING',
+        createdAt
+    };
+
+    await ctx.stub.putState(requestId, Buffer.from(JSON.stringify(request)));
+    return JSON.stringify(request);
+}
+async getPendingEmergencyRequests(ctx) {
+    if (ctx.clientIdentity.getAttributeValue('role') !== 'hospital') {
+        throw new Error('Only hospital admin can view emergency requests');
+    }
+
+    const iterator = await ctx.stub.getStateByRange('', '');
+const results = [];
+
+let res = await iterator.next();
+while (!res.done) {
+    if (res.value && res.value.value) {
+        try {
+            const record = JSON.parse(res.value.value.toString('utf8'));
+            if (record.status === 'PENDING') {
+                results.push(record);
+            }
+        } catch (err) {
+            // ignore non-JSON states
+        }
+    }
+    res = await iterator.next();
+}
+
+await iterator.close();
+return JSON.stringify(results);
+}
+
+async processEmergencyRequest(ctx, payload) {
+    const { requestId, action } = JSON.parse(payload);
+
+    if (ctx.clientIdentity.getAttributeValue('role') !== 'hospital') {
+        throw new Error('Only hospital admin can approve requests');
+    }
+
+    const reqBytes = await ctx.stub.getState(requestId);
+    if (!reqBytes || reqBytes.length === 0) {
+        throw new Error('Emergency request not found');
+    }
+
+    const request = JSON.parse(reqBytes.toString());
+
+    if (request.status !== 'PENDING') {
+        throw new Error('Request already processed');
+    }
+
+    request.status = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+
+    // ✅ DETERMINISTIC TIMESTAMP - Set before creating access record
+    const txTime = ctx.stub.getTxTimestamp();
+    request.approvedAt = new Date(txTime.seconds.low * 1000).toISOString();
+    request.approvedBy = ctx.clientIdentity.getID();
+
+    if (request.status === 'APPROVED') {
+
+  // 1️⃣ Enforcement key (already exists in your code)
+  const accessKey = `EMERGENCY_ACCESS_${request.patientId}_${request.doctorId}`;
+
+  const accessRecord = {
+    patientId: request.patientId,
+    doctorId: request.doctorId,
+    approvedAt: request.approvedAt,
+    requestId: request.requestId
+  };
+
+  await ctx.stub.putState(
+    accessKey,
+    Buffer.from(JSON.stringify(accessRecord))
+  );
+
+  // 2️⃣ Doctor lookup index (NEW)
+  const doctorIndexKey =
+    `EMERGENCY_BY_DOCTOR_${request.doctorId}_${request.requestId}`;
+
+  await ctx.stub.putState(
+    doctorIndexKey,
+    Buffer.from(JSON.stringify(accessRecord))
+  );
+}
+
+    await ctx.stub.putState(requestId, Buffer.from(JSON.stringify(request)));
+    return JSON.stringify(request);
+}
+
+// async canDoctorAccessPatient(ctx, args) {
+//     console.log("RAW args:", args);
+
+//     const { doctorId, patientId } = JSON.parse(args);
+
+//     console.log("doctorId:", doctorId);
+//     console.log("patientId:", patientId);
+
+//     const accessKey = `EMERGENCY_ACCESS_${patientId}_${doctorId}`;
+//     console.log("Checking key:", accessKey);
+
+//     const accessBytes = await ctx.stub.getState(accessKey);
+
+//     return JSON.stringify({
+//         access: !!(accessBytes && accessBytes.length > 0),
+//         debugKey: accessKey
+//     });
+// }
+
+async getMyEmergencyAccess(ctx) {
+  const doctorId = ctx.clientIdentity.getAttributeValue("uuid");
+
+  if (ctx.clientIdentity.getAttributeValue("role") !== "doctor") {
+    throw new Error("Only doctors allowed");
+  }
+
+  const iterator = await ctx.stub.getStateByRange(
+    `EMERGENCY_BY_DOCTOR_${doctorId}_`,
+    `EMERGENCY_BY_DOCTOR_${doctorId}_~`
+  );
+
+  const results = [];
+  let res = await iterator.next();
+
+  while (!res.done) {
+    if (res.value && res.value.value) {
+      results.push(JSON.parse(res.value.value.toString("utf8")));
+    }
+    res = await iterator.next();
+  }
+
+  await iterator.close();
+  return JSON.stringify(results);
+}
 
     async fetchLedger(ctx) {
         const { role } = this.getCallerAttributes(ctx);
@@ -617,7 +781,7 @@ class ehrChainCode extends Contract {
 
     async updatePatientProfile(ctx, args) {
         // args: JSON string with { name, dob, city }
-        const { name, dob, city } = JSON.parse(args);
+        const { name, dob, city, breakGlassConsent } = JSON.parse(args);
     
         // Get patient id from identity attribute 'uuid' (must be present in cert)
         const patientId = ctx.clientIdentity.getAttributeValue('uuid');
@@ -634,9 +798,10 @@ class ehrChainCode extends Contract {
         }
     
         const patient = JSON.parse(data.toString());
-        if (name) patient.name = name;
-        if (dob) patient.dob = dob;
-        if (city) patient.city = city;
+        if (name !== undefined) patient.name = name;
+        if (dob !== undefined) patient.dob = dob;
+        if (city !== undefined) patient.city = city;
+        if (breakGlassConsent !== undefined) patient.breakGlassConsent = breakGlassConsent;
     
         await ctx.stub.putState(userKey, Buffer.from(JSON.stringify(patient)));
     

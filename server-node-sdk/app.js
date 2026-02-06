@@ -321,10 +321,10 @@ app.post('/doctor/requestAccess', async (req, res, next) => {
     //new
     app.post('/updatePatientProfile', async (req, res, next) => {
         try {
-            const { name, dob, city } = req.body;
-
+            const { name, dob, city,breakGlassConsent } = req.body;
+            console.log("arguments at invoke: ", req.body);
             // Create an object with the arguments
-            const args = { name, dob, city };
+            const args = { name, dob, city,breakGlassConsent };
 
             // Call chaincode; invokeTransaction will stringify internally
             const result = await invoke.invokeTransaction('updatePatientProfile', args, req.body.userId);
@@ -487,12 +487,12 @@ app.post('/registerDoctor', async (req, res, next) => {
 // -------------------- Register Patient --------------------
 app.post('/registerPatient', async (req, res, next) => {
     try {
-        const { hospitalId, patientId, hospitalName, name, dob, city ,mobile} = req.body;
+        const { hospitalId, patientId, hospitalName, name, dob, city ,mobile,gender,breakGlassConsent} = req.body;
         if (!hospitalId || !patientId || !hospitalName || !name || !dob || !city) {
             throw new Error('Missing input data for patient registration.');
         }
 
-        const result = await helper.registerPatient(hospitalId, patientId, hospitalName, name, dob, city);
+        const result = await helper.registerPatient(hospitalId, patientId, hospitalName, name, dob, city,mobile,gender,breakGlassConsent);
         res.status(200).send({success:true,result:result});
     } catch (err) {
         next(err);
@@ -555,6 +555,116 @@ app.post('/login', async (req, res, next) => {
     }
   });
   
+
+// Doctor -> Create Emergency Request
+app.post('/doctor/emergency/request', async (req, res, next) => {
+    try {
+        const { doctorId, patientId, hospitalId, reason } = req.body;
+
+        const result = await invoke.invokeTransaction(
+            'createEmergencyRequest',
+            { doctorId, patientId, hospitalId, reason },
+            doctorId
+        );
+
+        res.status(200).send({
+            success: true,
+            message: "Emergency request sent to hospital admin",
+            data: result
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// Hospital Admin -> View Emergency Requests
+app.post('/admin/emergency/requests', async (req, res, next) => {
+    try {
+        const { adminId } = req.body;
+
+        const result = await query.getQuery(
+            'getPendingEmergencyRequests',
+            {},
+            adminId
+        );
+
+        res.status(200).send({
+            success: true,
+            data: result
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// Hospital Admin -> Approve / Reject Emergency Request
+app.post('/admin/emergency/decision', async (req, res, next) => {
+    try {
+        const { adminId, requestId, action } = req.body;
+        // action: APPROVE or REJECT
+
+        const result = await invoke.invokeTransaction(
+            'processEmergencyRequest',
+            { requestId, action },
+            adminId
+        );
+
+        res.status(200).send({
+            success: true,
+            message: `Emergency request ${action.toLowerCase()}ed`,
+            data: result
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+
+// // Doctor -> Emergency Access Check
+// app.post('/doctor/emergency/check', async (req, res, next) => {
+//   try {
+//     const { doctorId, patientId } = req.body;
+
+//     const result = await query.getQuery(
+//       'canDoctorAccessPatient',
+//       { doctorId, patientId },
+//       doctorId
+//     );
+//     res.status(200).send({
+//       success: true,
+//       access: result
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// });
+
+// Doctor -> Get my approved emergency access
+app.get('/doctor/emergency/my-access', async (req, res, next) => {
+  try {
+    const { doctorId } = req.query;   // ✅ NOT req.user
+
+    if (!doctorId) {
+      return res.status(400).json({
+        success: false,
+        message: "doctorId is required"
+      });
+    }
+
+    const result = await query.getQuery(
+      'getMyEmergencyAccess',
+      JSON.stringify( doctorId ),   // if chaincode needs args
+      doctorId
+    );
+
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.get('/getBlockchainInfo', async (req, res) => {
     try {
