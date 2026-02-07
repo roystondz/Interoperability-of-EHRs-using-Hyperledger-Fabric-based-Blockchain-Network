@@ -1128,7 +1128,9 @@ async requestAccess(ctx, args) {
                     patientId: patient.patientId,
                     name: patient.name,
                     dob: patient.dob,
-                    city: patient.city
+                    city: patient.city,
+                    age: patient.age,
+                    bloodGroup: patient.bloodGroup
                 });
             } catch (e) {}
         }
