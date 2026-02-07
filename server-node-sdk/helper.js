@@ -167,7 +167,7 @@ const registerDoctor = async (hospitalId, doctorId, hospitalName, name, departme
 };
 
 // 3️⃣ Register & Enroll Patient (by Doctor)
-const registerPatient = async (hospitalId, patientId, hospitalName, name, dob, city,mobile,gender,breakGlassConsent) => {
+const registerPatient = async (hospitalId, patientId, hospitalName, name, dob, city,mobile,gender,breakGlassConsent,age,bloodGroup) => {
     const ccp = loadCCP();
     const ca = getCAClient(ccp);
     const wallet = await getWallet();
@@ -221,7 +221,7 @@ const registerPatient = async (hospitalId, patientId, hospitalName, name, dob, c
     const network = await gateway.getNetwork(CHANNEL_NAME);
     const contract = network.getContract(CHAINCODE_NAME);
 
-    const res = await contract.submitTransaction('onboardPatient', JSON.stringify({ patientId, hospitalName, name, dob, city,mobile,gender,breakGlassConsent }));
+    const res = await contract.submitTransaction('onboardPatient', JSON.stringify({ patientId, hospitalName, name, dob, city,mobile,gender,breakGlassConsent,age,bloodGroup }));
     gateway.disconnect();
 
     return { message: `Patient ${patientId} registered and onboarded successfully`, chaincodeRes: res.toString() };

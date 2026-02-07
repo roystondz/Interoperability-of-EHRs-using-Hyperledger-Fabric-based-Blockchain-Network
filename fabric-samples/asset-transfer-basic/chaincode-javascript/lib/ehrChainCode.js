@@ -337,7 +337,7 @@ class ehrChainCode extends Contract {
       
 
     async onboardPatient(ctx, args) {
-        const { patientId, name, dob, city,mobile,gender,breakGlassConsent} = JSON.parse(args);
+        const { patientId, name, dob, city,mobile,gender,breakGlassConsent,age,bloodGroup} = JSON.parse(args);
         const key = `PAT-${patientId}`;
         const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
         const existing = await ctx.stub.getState(key);
@@ -353,6 +353,8 @@ class ehrChainCode extends Contract {
             mobile,
             gender,
             breakGlassConsent,
+            age,
+            bloodGroup,
             status:'active',
             timestamp,
             authorizedDoctors: []
@@ -547,25 +549,6 @@ async processEmergencyRequest(ctx, payload) {
     await ctx.stub.putState(requestId, Buffer.from(JSON.stringify(request)));
     return JSON.stringify(request);
 }
-
-// async canDoctorAccessPatient(ctx, args) {
-//     console.log("RAW args:", args);
-
-//     const { doctorId, patientId } = JSON.parse(args);
-
-//     console.log("doctorId:", doctorId);
-//     console.log("patientId:", patientId);
-
-//     const accessKey = `EMERGENCY_ACCESS_${patientId}_${doctorId}`;
-//     console.log("Checking key:", accessKey);
-
-//     const accessBytes = await ctx.stub.getState(accessKey);
-
-//     return JSON.stringify({
-//         access: !!(accessBytes && accessBytes.length > 0),
-//         debugKey: accessKey
-//     });
-// }
 
 async getMyEmergencyAccess(ctx) {
   const doctorId = ctx.clientIdentity.getAttributeValue("uuid");
