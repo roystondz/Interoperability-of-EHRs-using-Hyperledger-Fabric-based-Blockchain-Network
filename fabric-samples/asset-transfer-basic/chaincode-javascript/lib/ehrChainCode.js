@@ -576,6 +576,38 @@ async getMyEmergencyAccess(ctx) {
   return JSON.stringify(results);
 }
 
+
+async getEmergencyRequestsByStatus(ctx, status) {
+  // 🔥 sanitize incoming arg
+  status = status.replace(/"/g, '').toUpperCase();
+
+  const validStatuses = ['PENDING', 'APPROVED', 'REJECTED'];
+
+  if (!validStatuses.includes(status)) {
+    throw new Error(`Invalid status: ${status}`);
+  }
+
+  const iterator = await ctx.stub.getStateByRange('ER_', 'ER_~');
+
+  const results = [];
+  let res = await iterator.next();
+
+  while (!res.done) {
+    if (res.value && res.value.value) {
+      const record = JSON.parse(res.value.value.toString('utf8'));
+
+      if (record.status === status) {
+        results.push(record);
+      }
+    }
+    res = await iterator.next();
+  }
+
+  await iterator.close();
+  return results;
+}
+
+
     async fetchLedger(ctx) {
         const { role } = this.getCallerAttributes(ctx);
         if (role !== "hospital" && role !== "admin") {

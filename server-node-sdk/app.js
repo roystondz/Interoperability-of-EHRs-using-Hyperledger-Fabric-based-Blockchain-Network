@@ -666,6 +666,35 @@ app.get('/doctor/emergency/my-access', async (req, res, next) => {
   }
 });
 
+app.get('/emergency/requests', async (req, res, next) => {
+  try {
+    const { status, userId } = req.query;   // ✅ generic
+    console.log("status", status);
+    console.log("userId", userId);
+    if (!status || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'status and userId are required'
+      });
+    }
+
+    const result = await query.getQuery(
+      'getEmergencyRequestsByStatus',
+      status.toUpperCase(),
+      userId
+    );
+
+    res.status(200).json({
+      success: true,
+      count: result.length,
+      data: result
+    });
+
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.get('/getBlockchainInfo', async (req, res) => {
     try {
       const { Gateway, Wallets } = require("fabric-network");
