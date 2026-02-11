@@ -578,6 +578,25 @@ app.post('/doctor/emergency/request', async (req, res, next) => {
 });
 
 // Hospital Admin -> View Emergency Requests
+app.post('/admin/emergency/all', async (req, res, next) => {
+  try {
+    const { adminId } = req.body;
+
+    const result = await query.getQuery(
+      'getAllEmergencyRequests',
+      {},
+      adminId
+    );
+
+    res.status(200).send({
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.post('/admin/emergency/requests', async (req, res, next) => {
     try {
         const { adminId } = req.body;
@@ -665,6 +684,35 @@ app.get('/doctor/emergency/my-access', async (req, res, next) => {
     next(err);
   }
 });
+
+app.post('/emergency/revoke', async (req, res, next) => {
+  try {
+    const { requestId, userId } = req.body;
+
+    if (!requestId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'requestId and userId are required'
+      });
+    }
+    console.log("requestId", requestId);
+    console.log("userId", userId);
+    const result = await invoke.invokeTransaction(
+      'revokeEmergencyAccess',
+      { requestId },
+      userId
+    );
+
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+
+  } catch (err) {
+    next(err);
+  }
+});
+
 
 app.get('/emergency/requests', async (req, res, next) => {
   try {

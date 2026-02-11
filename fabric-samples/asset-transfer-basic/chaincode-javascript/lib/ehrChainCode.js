@@ -467,6 +467,36 @@ class ehrChainCode extends Contract {
     await ctx.stub.putState(requestId, Buffer.from(JSON.stringify(request)));
     return JSON.stringify(request);
 }
+async getAllEmergencyRequests(ctx) {
+    if (ctx.clientIdentity.getAttributeValue('role') !== 'hospital') {
+        throw new Error('Only hospital admin can view emergency requests');
+    }
+
+    const iterator = await ctx.stub.getStateByRange('', '');
+    const results = [];
+
+    let res = await iterator.next();
+    while (!res.done) {
+        if (res.value && res.value.value) {
+            try {
+                const record = JSON.parse(res.value.value.toString('utf8'));
+                if (record.requestId && record.requestId.startsWith('ER_')) {
+                    results.push({
+                        key: res.value.key,
+                        ...record
+                    });
+                }
+            } catch (err) {
+                // ignore non-JSON states
+            }
+        }
+        res = await iterator.next();
+    }
+
+    await iterator.close();
+    return JSON.stringify(results);
+}
+
 async getPendingEmergencyRequests(ctx) {
     if (ctx.clientIdentity.getAttributeValue('role') !== 'hospital') {
         throw new Error('Only hospital admin can view emergency requests');
@@ -576,12 +606,64 @@ async getMyEmergencyAccess(ctx) {
   return JSON.stringify(results);
 }
 
+async revokeEmergencyAccess(ctx, args) {
+  const { requestId } = JSON.parse(args);
+  const role = ctx.clientIdentity.getAttributeValue('role');
+
+  if (role !== 'hospital' && role !== 'government') {
+    throw new Error('Only hospital or government can revoke emergency access');
+  }
+
+  // 🔧 normalize ER key
+  let erKey = requestId;
+  console.log(`Original requestId: "${requestId}"`);
+  if (!erKey.startsWith('ER_')) {
+    erKey = `ER_${erKey}`;
+  }
+  console.log(`Searching for emergency request with key: "${erKey}"`); 
+
+  const erBytes = await ctx.stub.getState(erKey);
+  if (!erBytes || erBytes.length === 0) {
+    throw new Error('Emergency request not found');
+  }
+
+  const er = JSON.parse(erBytes.toString());
+
+  if (er.status !== 'APPROVED') {
+    throw new Error(`Cannot revoke request with status ${er.status}`);
+  }
+
+  // update status
+  er.status = 'REVOKED';
+  er.revokedAt = new Date().toISOString();
+  er.revokedBy = ctx.clientIdentity.getID();
+
+  await ctx.stub.putState(erKey, Buffer.from(JSON.stringify(er)));
+
+  // delete access keys
+  await ctx.stub.deleteState(
+    `EMERGENCY_ACCESS_${er.patientId}_${er.doctorId}`
+  );
+
+  await ctx.stub.deleteState(
+    `EMERGENCY_BY_DOCTOR_${er.doctorId}_${er.requestId}`
+  );
+
+  return {
+    success: true,
+    requestId: er.requestId,
+    doctorId: er.doctorId,
+    patientId: er.patientId,
+    hospitalId: er.hospitalId,
+    status: er.status
+  };
+}
 
 async getEmergencyRequestsByStatus(ctx, status) {
   // 🔥 sanitize incoming arg
   status = status.replace(/"/g, '').toUpperCase();
 
-  const validStatuses = ['PENDING', 'APPROVED', 'REJECTED'];
+  const validStatuses = ['PENDING', 'APPROVED', 'REJECTED','REVOKED'];
 
   if (!validStatuses.includes(status)) {
     throw new Error(`Invalid status: ${status}`);
