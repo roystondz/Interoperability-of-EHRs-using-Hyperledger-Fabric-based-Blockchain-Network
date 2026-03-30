@@ -688,7 +688,7 @@ app.get('/doctor/emergency/my-access', async (req, res, next) => {
 app.post('/emergency/revoke', async (req, res, next) => {
   try {
     const { requestId, userId } = req.body;
-
+    
     if (!requestId || !userId) {
       return res.status(400).json({
         success: false,
